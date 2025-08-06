@@ -1,0 +1,165 @@
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Create enum types for fixed-value fields
+CREATE TYPE user_role AS ENUM ('customer', 'seller', 'admin');
+CREATE TYPE order_status AS ENUM ('pending', 'processing', 'shipped', 'delivered', 'cancelled');
+CREATE TYPE payment_method AS ENUM ('mpesa', 'card', 'cash_on_delivery');
+
+-- Users table (base for all accounts)
+CREATE TABLE users (
+    user_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    role user_role NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    phone VARCHAR(13) UNIQUE NOT NULL CHECK (phone LIKE '+254%'),
+    password_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Sellers table (extends users)
+CREATE TABLE sellers (
+    seller_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID UNIQUE NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    business_name VARCHAR(100) NOT NULL,
+    tax_id VARCHAR(50),
+    business_license VARCHAR(100),
+    total_sales NUMERIC(12, 2) DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- User addresses
+CREATE TABLE addresses (
+    address_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    city VARCHAR(50) NOT NULL,
+    street VARCHAR(255) NOT NULL,
+    building VARCHAR(50),
+    postal_code VARCHAR(20),
+    is_default BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Product categories
+CREATE TABLE categories (
+    category_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT,
+    featured BOOLEAN DEFAULT false,
+    icon_path VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Products
+CREATE TABLE products (
+    product_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    seller_id UUID NOT NULL REFERENCES sellers(seller_id) ON DELETE CASCADE,
+    category_id UUID NOT NULL REFERENCES categories(category_id) ON DELETE RESTRICT,
+    title VARCHAR(100) NOT NULL,
+    description TEXT,
+    price NUMERIC(10, 2) NOT NULL CHECK (price > 0),
+    sale_price NUMERIC(10, 2) CHECK (sale_price > 0),
+    stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
+    specs JSONB,
+    rating NUMERIC(3, 2) DEFAULT 0 CHECK (rating >= 0 AND rating <= 5),
+    review_count INTEGER DEFAULT 0 CHECK (review_count >= 0),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Product images
+CREATE TABLE product_images (
+    image_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    product_id UUID NOT NULL REFERENCES products(product_id) ON DELETE CASCADE,
+    image_url VARCHAR(255) NOT NULL,
+    alt_text VARCHAR(100),
+    is_primary BOOLEAN DEFAULT false,
+    sort_order INTEGER DEFAULT 0
+);
+
+-- Orders
+CREATE TABLE orders (
+    order_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE RESTRICT,
+    address_id UUID NOT NULL REFERENCES addresses(address_id) ON DELETE RESTRICT,
+    total_amount NUMERIC(12, 2) NOT NULL CHECK (total_amount > 0),
+    status order_status NOT NULL DEFAULT 'pending',
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Order items
+CREATE TABLE order_items (
+    order_item_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    order_id UUID NOT NULL REFERENCES orders(order_id) ON DELETE CASCADE,
+    product_id UUID NOT NULL REFERENCES products(product_id) ON DELETE RESTRICT,
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    unit_price NUMERIC(10, 2) NOT NULL CHECK (unit_price > 0),
+    discount NUMERIC(10, 2) DEFAULT 0
+);
+
+-- Payments
+CREATE TABLE payments (
+    payment_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    order_id UUID UNIQUE NOT NULL REFERENCES orders(order_id) ON DELETE CASCADE,
+    method payment_method NOT NULL,
+    amount NUMERIC(12, 2) NOT NULL CHECK (amount > 0),
+    mpesa_code VARCHAR(20),
+    mpesa_phone VARCHAR(13) CHECK (mpesa_phone LIKE '+254%'),
+    transaction_reference VARCHAR(100),
+    is_confirmed BOOLEAN DEFAULT false,
+    confirmed_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Reviews
+CREATE TABLE reviews (
+    review_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    product_id UUID NOT NULL REFERENCES products(product_id) ON DELETE CASCADE,
+    rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    comment TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_user_product_review UNIQUE (user_id, product_id)
+);
+
+-- Delivery pricing rules
+CREATE TABLE delivery_pricing (
+    rule_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    city VARCHAR(50) NOT NULL,
+    min_free_delivery NUMERIC(10, 2) DEFAULT 0,
+    standard_fee NUMERIC(10, 2) NOT NULL,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (city)
+);
+
+-- Special offers
+CREATE TABLE special_offers (
+    offer_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    title VARCHAR(100) NOT NULL,
+    description TEXT,
+    discount_percent NUMERIC(5, 2) CHECK (discount_percent > 0 AND discount_percent <= 100),
+    banner_image_url VARCHAR(255),
+    valid_from TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    valid_until TIMESTAMP WITH TIME ZONE,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Product-offer relationship
+CREATE TABLE product_offers (
+    product_id UUID NOT NULL REFERENCES products(product_id) ON DELETE CASCADE,
+    offer_id UUID NOT NULL REFERENCES special_offers(offer_id) ON DELETE CASCADE,
+    PRIMARY KEY (product_id, offer_id)
+);
+
+-- Create indexes for performance
+CREATE INDEX idx_products_category ON products(category_id);
+CREATE INDEX idx_products_seller ON products(seller_id);
+CREATE INDEX idx_orders_user ON orders(user_id);
+CREATE INDEX idx_order_items_order ON order_items(order_id);
+CREATE INDEX idx_reviews_product ON reviews(product_id);
+CREATE INDEX idx_payments_order ON payments(order_id);
