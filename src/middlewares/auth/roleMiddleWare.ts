@@ -1,11 +1,11 @@
 import { Response, NextFunction } from "express";
 import asyncHandler from "../asyncHandler";
-import { UserRequest } from "../../utils/types/userTypes";
+import { UserRequest, UserRole } from "../../utils/types/userTypes";
 import { ownUserMiddleware } from "./ownUserMiddleware";
 
 
 //ensure user has required roles 
-export const roleGuard = (allowedRoles: string[]) =>
+export const roleGuard = (allowedRoles: UserRole[]) =>
     asyncHandler<void, UserRequest>(async (req:UserRequest, res:Response, next:NextFunction) => {
         if (!req.user || !allowedRoles.includes(req.user?.role || 'guest')) {
             res.status(403).json({ message: "Access denied: Insufficient permissions" });
@@ -13,8 +13,6 @@ export const roleGuard = (allowedRoles: string[]) =>
         }
         next();
     });
-
-
 
 // Specific guards
 export const adminGuard = roleGuard(["admin"]);         // Full app control

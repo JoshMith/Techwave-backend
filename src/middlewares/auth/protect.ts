@@ -40,22 +40,18 @@ export const protect = asyncHandler(async (req: UserRequest, res: Response, next
             [decoded.userId]
         );
 
-        
         if (userQuery.rows.length === 0) {
             res.status(401).json({ message: "User not found" });
             return;
         }
-
 
         //attach the user to the request 
         req.user = userQuery.rows[0]
 
         next() //proceed to next thing 
 
-
     } catch (error) {
         console.error("JWT Error:", error);
         res.status(401).json({ message: "Not authorized, token failed" });
     }
-
 })

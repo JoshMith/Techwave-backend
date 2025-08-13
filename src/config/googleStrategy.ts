@@ -22,7 +22,7 @@ passport.use(
         const { given_name, family_name, email } = profile._json;
         
         // Check if user exists in database
-        const userExists = await pool.query("SELECT id FROM users WHERE email = $1", [email]);
+        const userExists = await pool.query("SELECT user_id FROM users WHERE email = $1", [email]);
 
         if (userExists.rows.length > 0) {
           // User exists - return the user
@@ -32,10 +32,10 @@ passport.use(
           // User doesn't exist - create new user
           const newUser = await pool.query(
             `INSERT INTO users
-              (first_name, last_name, email, verified, roles)
+              (name, email, verified, role)
             VALUES ($1, $2, $3, $4, $5)
             RETURNING *`,
-            [given_name, family_name, email, true, 'customer'] // Default role is 'member'
+            [given_name + family_name, email, true, 'customer'] // Default role is 'member'
           );
 
           return done(null, newUser.rows[0]);
@@ -49,13 +49,13 @@ passport.use(
 
 // Serialize user into session
 passport.serializeUser((user: any, done) => {
-  done(null, user.id);
+  done(null, user.user_id);
 });
 
 // Deserialize user from session
-passport.deserializeUser(async (id: string, done) => {
+passport.deserializeUser(async (user_id: string, done) => {
   try {
-    const user = await pool.query("SELECT id, email, roles FROM users WHERE id = $1", [id]);
+    const user = await pool.query("SELECT user_id, email, roles FROM users WHERE user_id = $1", [user_id]);
     done(null, user.rows[0]);
   } catch (error) {
     done(error, null);
