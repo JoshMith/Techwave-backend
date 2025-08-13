@@ -1,5 +1,5 @@
 import express from 'express'
-import { loginUser, logoutUser, registerUser } from '../controllers/authController'
+import { googleAuth, googleAuthCallback, loginUser, logoutUser, registerUser, verifyEmail } from '../controllers/authController'
 
 const router = express.Router()
 
@@ -8,6 +8,11 @@ router.post("/register", registerUser)
 router.post("/login", loginUser)
 router.post("/logout", logoutUser)
 
+router.get("/verifyEmail",verifyEmail)
+
+// Google OAuth routes
+router.get("/google", googleAuth)
+router.get("/google/callback", googleAuthCallback)
 
 
 export default router

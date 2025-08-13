@@ -87,6 +87,44 @@ export const getProductById = asyncHandler(async (req: UserRequest, res: express
 });
 
 
+// Get products by category Name
+// @desc    Get products by category Name
+// @route   GET /api/products/category/:name
+// @access  Public
+export const getProductsByCategoryName = asyncHandler(async (req: UserRequest, res: express.Response) => {
+    const { name } = req.params;
+
+    const query = `
+        SELECT 
+            p.product_id, 
+            p.title, 
+            p.description, 
+            p.price, 
+            p.sale_price, 
+            p.stock, 
+            p.specs, 
+            p.rating, 
+            p.review_count, 
+            c.name AS category_name,
+            u.name AS seller_name,
+            p.created_at,
+            p.updated_at
+        FROM products p
+        JOIN categories c ON p.category_id = c.category_id
+        JOIN sellers s ON p.seller_id = s.seller_id
+        JOIN users u ON s.seller_id = u.user_id
+        WHERE c.name ILIKE $1
+        ORDER BY p.created_at DESC
+    `;
+    const result = await pool.query(query, [`%${name}%`]);
+
+    if (result.rows.length === 0) {
+        return res.status(404).json({ message: "No products found for this category" });
+    }
+
+    res.status(200).json(result.rows);
+});
+
 // @desc    Create a new product
 // @route   POST /api/products
 // @access  Private/Seller
@@ -171,4 +209,20 @@ export const deleteProduct = asyncHandler(async (req: UserRequest, res: express.
     }
 
     res.status(200).json({ message: "Product deleted successfully", productId: result.rows[0].product_id });
+});
+
+
+// Products Count
+// @desc    Get total count of products by categoryId
+// @route   GET /api/products/count
+// @access  Public
+export const getProductsCountByCategoryId = asyncHandler(async (req: UserRequest, res: express.Response) => {
+    const { id } = req.params;
+    const query = `
+        SELECT COUNT(*) AS count
+        FROM products
+        WHERE category_id = $1
+    `;
+    const result = await pool.query(query, [id]);
+    res.status(200).json({ count: parseInt(result.rows[0].count, 10) });
 });

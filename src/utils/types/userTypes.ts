@@ -14,6 +14,16 @@ export interface User {
     updated_at?: Date;
 }
 
+declare global {
+  namespace Express {
+    interface User {
+      user_id: string;
+      name: string;
+      email: string;
+    }
+  }
+}
+
 /**
  * Custom Express Request Type to include `user` object
  */

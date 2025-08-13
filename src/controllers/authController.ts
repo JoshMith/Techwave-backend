@@ -3,6 +3,8 @@ import pool from "../config/db.config";
 import bcrypt from 'bcryptjs'
 import { generateToken } from "../utils/helpers/generateToken";
 import asyncHandler from "../middlewares/asyncHandler";
+import jwt from 'jsonwebtoken'
+import passport from 'passport';
 
 export const registerUser = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { name, email, phone, password, role } = req.body
@@ -44,7 +46,6 @@ export const loginUser = asyncHandler(async (req: Request, res: Response, next: 
 
     const { email, password } = req.body
 
-    // Check if user exists
     // Check if user exists
     const userQuery = await pool.query(
         `SELECT user_id, name, email, password_hash, role FROM users WHERE email = $1`,
@@ -103,4 +104,86 @@ export const logoutUser = asyncHandler(async (req: Request, res: Response, next:
     });
 
     res.status(200).json({ message: "User logged out successfully" });
+});
+
+export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
+
+    // console.log("verify email called")
+    const token = req.query.token as string;
+    console.log("recived token")
+    if (!token) {
+        return res.status(400).json({ message: "Invalid or missing token" });
+    }
+
+
+    try {
+        // Decode the token
+        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+
+        // Update user as verified
+        const result = await pool.query(
+            "UPDATE users SET verified = TRUE WHERE id = $1 RETURNING id, email, verified",
+            [decoded.userId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        return res.status(200).json({ message: "Email successfully verified", user: result.rows[0] });
+
+    } catch (error) {
+        return res.status(400).json({ message: "Invalid or expired token" });
+    }
+});
+
+
+
+export const googleAuth = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+});
+
+export const googleAuthCallback = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    passport.authenticate('google', { failureRedirect: '/login' }, async (err: any, user: any) => {
+        if (err) {
+            return next(err);
+        }
+        if (!user) {
+            return res.redirect('/login');
+        }
+
+        // Generate tokens and set cookies
+        await generateToken(res, user.user_id, user.role);
+
+        // Check if user exists in the database
+        const userQuery = await pool.query(
+            `SELECT User_id, name, email, role, verified
+        FROM users
+        WHERE id = $1`,
+            [user.user_id]
+        );
+        
+
+        // If no user is found, return an error
+        if (userQuery.rows.length === 0) {
+            return res.status(401).json({ message: "Invalid email or password" });
+        }
+
+        // Retrieve the user data from the query result
+        const userData = userQuery.rows[0];
+
+        // Prepare user data for frontend
+        const response = {
+            id: userData.id,
+            email: userData.email,
+            role: userData.role,
+            verified: userData.verified
+        };
+
+        // Encode user data for URL
+        const encodedUserData = encodeURIComponent(JSON.stringify(response));
+
+        // Redirect to frontend with user data
+        res.redirect(`${process.env.FRONTEND_URL}/dashboard?user=${encodedUserData}`);
+    })(req, res, next);
 });

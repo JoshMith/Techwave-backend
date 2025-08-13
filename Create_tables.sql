@@ -1,7 +1,8 @@
--- Create enum types for fixed-value fields (no change needed)
+-- Create enum types for fixed-value fields
 CREATE TYPE user_role AS ENUM ('customer', 'seller', 'admin');
 CREATE TYPE order_status AS ENUM ('pending', 'processing', 'shipped', 'delivered', 'cancelled');
 CREATE TYPE payment_method AS ENUM ('mpesa', 'card', 'cash_on_delivery');
+CREATE TYPE cart_status AS ENUM ('active', 'abandoned', 'converted');
 
 -- Users table (base for all accounts)
 CREATE TABLE users (
@@ -24,6 +25,20 @@ CREATE TABLE sellers (
     business_license VARCHAR(100),
     total_sales NUMERIC(12, 2) DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Shopping carts table
+CREATE TABLE carts (
+    cart_id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
+    session_id VARCHAR(100),
+    status cart_status NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT cart_owner CHECK (
+        (user_id IS NOT NULL AND session_id IS NULL) OR
+        (user_id IS NULL AND session_id IS NOT NULL)
+    )
 );
 
 -- User addresses
@@ -75,10 +90,22 @@ CREATE TABLE product_images (
     sort_order INTEGER DEFAULT 0
 );
 
+-- Cart items table
+CREATE TABLE cart_items (
+    cart_item_id SERIAL PRIMARY KEY,
+    cart_id INTEGER NOT NULL REFERENCES carts(cart_id) ON DELETE CASCADE,
+    product_id INTEGER NOT NULL REFERENCES products(product_id) ON DELETE CASCADE,
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    added_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    unit_price NUMERIC(10, 2) NOT NULL CHECK (unit_price > 0),
+    UNIQUE (cart_id, product_id)
+);
+
 -- Orders
 CREATE TABLE orders (
     order_id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE RESTRICT,
+    cart_id INTEGER REFERENCES carts(cart_id),
     address_id INTEGER NOT NULL REFERENCES addresses(address_id) ON DELETE RESTRICT,
     total_amount NUMERIC(12, 2) NOT NULL CHECK (total_amount > 0),
     status order_status NOT NULL DEFAULT 'pending',
@@ -153,10 +180,14 @@ CREATE TABLE product_offers (
     PRIMARY KEY (product_id, offer_id)
 );
 
--- Create indexes for performance (same as before)
+-- Create indexes for performance
 CREATE INDEX idx_products_category ON products(category_id);
 CREATE INDEX idx_products_seller ON products(seller_id);
 CREATE INDEX idx_orders_user ON orders(user_id);
 CREATE INDEX idx_order_items_order ON order_items(order_id);
 CREATE INDEX idx_reviews_product ON reviews(product_id);
 CREATE INDEX idx_payments_order ON payments(order_id);
+CREATE INDEX idx_carts_user ON carts(user_id) WHERE user_id IS NOT NULL;
+CREATE INDEX idx_carts_session ON carts(session_id) WHERE session_id IS NOT NULL;
+CREATE INDEX idx_cart_items_cart ON cart_items(cart_id);
+CREATE INDEX idx_cart_items_product ON cart_items(product_id);

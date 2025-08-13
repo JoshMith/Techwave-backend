@@ -17,9 +17,9 @@ import productOffersRoutes from './routes/productOffersRoutes'
 import paymentsRoutes from './routes/paymentsRoutes'
 import reviewsRoutes from './routes/reviewsRoutes'
 import deliveryPriceRoutes from './routes/deliveryPriceRoutes'
-
-
-
+import passport from 'passport'
+import session from 'express-session'
+import path from 'path' // For serving static files
 
 
 // 1:dotenv
@@ -36,9 +36,10 @@ app.use(cookieParser())
 
 // CORS middleware
 app.use(cors({
-    origin: "http://localhost:4200", // Allow all origins, you can specify a specific origin if needed
+    origin: ["http://localhost:4200", "http://localhost:3000"], // Allow all origins, you can specify a specific origin if needed
     methods: "GET, POST, PUT, DELETE, OPTIONS",
-    credentials: true //allows cookies and auth headers
+    credentials: true, //allows cookies and auth headers
+    allowedHeaders: "Content-Type, Authorization, X-Requested-With",
 }))
 
 
@@ -57,6 +58,30 @@ app.use("/product-offers", productOffersRoutes)
 app.use("/payments", paymentsRoutes)
 app.use("/reviews", reviewsRoutes)
 app.use("/delivery-prices", deliveryPriceRoutes)
+
+// Update your static files configuration
+app.use('/public', express.static(path.join(__dirname, '../../public'), {
+  setHeaders: (res, path) => {
+    // Set proper cache headers
+    res.set('Cache-Control', 'public, max-age=31536000');
+  }
+}));
+
+
+// Google strategy
+app.use(session({
+  secret: process.env.SESSION_SECRET!,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
 
 
 app.get("/", (req, res) => {

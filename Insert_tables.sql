@@ -23,8 +23,10 @@ INSERT INTO addresses (user_id, city, street, building, postal_code, is_default)
 INSERT INTO categories (name, description, featured, icon_path) VALUES
 ('Phones', 'Smartphones and feature phones', true, '/icons/phones.png'),
 ('Laptops', 'Laptops and notebooks', true, '/icons/laptops.png'),
-('Accessories', 'Phone cases, chargers, etc.', false, '/icons/accessories.png'),
-('Home Appliances', 'TVs, fridges, etc.', false, '/icons/appliances.png');
+('Accessories', 'Phone cases, chargers, etc.', true, '/icons/accessories.png'),
+('Home Appliances', 'TVs, fridges, etc.', true, '/icons/appliances.png'),
+('Gaming', 'PS5, Xbox, etc', true, '/icons/gaming.png'),
+('Audio & Sound', 'Wireless Headphones, Bluetooth Speaker, etc', true, '/icons/audio-sound.png');
 
 -- Insert products
 INSERT INTO products (seller_id, category_id, title, description, price, sale_price, stock, specs, rating, review_count) VALUES
@@ -48,6 +50,21 @@ INSERT INTO product_images (product_id, image_url, alt_text, is_primary) VALUES
 (4, '/uploads/products/jbl-headphones-1.jpg', 'JBL headphones black color', true),
 (5, '/uploads/products/samsung-tv-1.jpg', 'Samsung 32-inch TV on stand', true);
 
+-- Insert carts (both guest and user carts)
+INSERT INTO carts (user_id, session_id, status) VALUES
+(2, NULL, 'active'), -- John Kamau's cart
+(3, NULL, 'active'), -- Mary Wanjiku's cart
+(NULL, 'guest_session_abc123', 'active'), -- Guest cart
+(NULL, 'guest_session_def456', 'abandoned'); -- Abandoned guest cart
+
+-- Insert cart items
+INSERT INTO cart_items (cart_id, product_id, quantity, unit_price) VALUES
+(1, 1, 1, 42999), -- John has Samsung Galaxy in cart
+(1, 4, 2, 6999),  -- John also has 2 JBL headphones
+(2, 3, 1, 84999), -- Mary has HP laptop in cart
+(3, 2, 1, 28999), -- Guest has Tecno phone in cart
+(3, 5, 1, 25999); -- Guest also has Samsung TV
+
 -- Insert delivery pricing
 INSERT INTO delivery_pricing (city, min_free_delivery, standard_fee) VALUES
 ('Nairobi', 5000, 200),
@@ -69,23 +86,24 @@ INSERT INTO product_offers VALUES
 (4, 1), -- JBL headphones on Mid-Year Sale
 (5, 1); -- Samsung TV on Mid-Year Sale
 
--- Insert orders
-INSERT INTO orders (user_id, address_id, total_amount, status) VALUES
-(2, 1, 42999, 'delivered'),
-(3, 3, 6999, 'shipped'),
-(2, 2, 84999, 'processing');
+-- Insert orders (now linked to carts)
+INSERT INTO orders (user_id, cart_id, address_id, total_amount, status) VALUES
+(2, 1, 1, 56997, 'delivered'), -- John's order (from cart 1)
+(3, 2, 3, 84999, 'shipped'),    -- Mary's order (from cart 2)
+(2, NULL, 2, 42999, 'processing'); -- Older order without cart reference
 
 -- Insert order items
 INSERT INTO order_items (order_id, product_id, quantity, unit_price, discount) VALUES
-(1, 1, 1, 42999, 2000),
-(2, 4, 1, 6999, 1000),
-(3, 3, 1, 84999, 5000);
+(1, 1, 1, 42999, 2000),  -- Samsung Galaxy
+(1, 4, 2, 6999, 1000),   -- JBL headphones (2x)
+(2, 3, 1, 84999, 5000),  -- HP laptop
+(3, 1, 1, 42999, 2000);  -- Samsung Galaxy in separate order
 
 -- Insert payments
 INSERT INTO payments (order_id, method, amount, mpesa_code, mpesa_phone, is_confirmed, confirmed_at) VALUES
-(1, 'mpesa', 42999, 'NLJ9H2AK', '+254711222333', true, '2023-10-15 14:30:00+03'),
-(2, 'mpesa', 6999, 'MK45H2B3', '+254722333444', true, '2023-10-16 09:15:00+03'),
-(3, 'mpesa', 84999, 'P98K3L4M', '+254711222333', false, NULL);
+(1, 'mpesa', 56997, 'NLJ9H2AK', '+254711222333', true, '2023-10-15 14:30:00+03'),
+(2, 'mpesa', 84999, 'MK45H2B3', '+254722333444', true, '2023-10-16 09:15:00+03'),
+(3, 'mpesa', 42999, 'P98K3L4M', '+254711222333', false, NULL);
 
 -- Insert reviews
 INSERT INTO reviews (user_id, product_id, rating, comment) VALUES
