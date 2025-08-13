@@ -7,9 +7,9 @@ import { ownUserMiddleware } from "./ownUserMiddleware";
 //ensure user has required roles 
 export const roleGuard = (allowedRoles: string[]) =>
     asyncHandler<void, UserRequest>(async (req:UserRequest, res:Response, next:NextFunction) => {
-        if (!req.user || !allowedRoles.includes(req.user.role)) {
+        if (!req.user || !allowedRoles.includes(req.user?.role || 'guest')) {
             res.status(403).json({ message: "Access denied: Insufficient permissions" });
-            return;
+            return; 
         }
         next();
     });

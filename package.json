@@ -1,10 +1,12 @@
 {
   "name": "techwave",
   "version": "1.0.0",
-  "main": "server.ts",
+  "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node src/server.ts",
+    "build": "tsc",
+    "prestart": "pnpm run build",
+    "start": "node dist/server.js",
     "dev": "nodemon src/server.ts"
   },
   "keywords": [],

@@ -9,7 +9,7 @@ export interface User {
     name: string;
     email: string;
     password?: string; // Exclude password when returning user info
-    role?: 'customer' | 'seller' | 'admin';
+    role: string;
     created_at?: Date;
     updated_at?: Date;
 }
