@@ -144,12 +144,12 @@ export const googleAuth = asyncHandler(async (req: Request, res: Response, next:
 });
 
 export const googleAuthCallback = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    passport.authenticate('google', { failureRedirect: '/login' }, async (err: any, user: any) => {
+    passport.authenticate('google', { failureRedirect: '/homepage' }, async (err: any, user: any) => {
         if (err) {
             return next(err);
         }
         if (!user) {
-            return res.redirect('/login');
+            return res.redirect('/homepage');
         }
 
         // Generate tokens and set cookies
@@ -157,9 +157,9 @@ export const googleAuthCallback = asyncHandler(async (req: Request, res: Respons
 
         // Check if user exists in the database
         const userQuery = await pool.query(
-            `SELECT User_id, name, email, role, verified
+            `SELECT user_id, name, email, role, verified
         FROM users
-        WHERE id = $1`,
+        WHERE user_id = $1`,
             [user.user_id]
         );
         
@@ -174,7 +174,7 @@ export const googleAuthCallback = asyncHandler(async (req: Request, res: Respons
 
         // Prepare user data for frontend
         const response = {
-            id: userData.id,
+            user_id: userData.user_id,
             email: userData.email,
             role: userData.role,
             verified: userData.verified
@@ -184,6 +184,6 @@ export const googleAuthCallback = asyncHandler(async (req: Request, res: Respons
         const encodedUserData = encodeURIComponent(JSON.stringify(response));
 
         // Redirect to frontend with user data
-        res.redirect(`${process.env.FRONTEND_URL}/dashboard?user=${encodedUserData}`);
+        res.redirect(`${process.env.FRONTEND_URL}/homepage?user=${encodedUserData}`);
     })(req, res, next);
 });

@@ -10,8 +10,9 @@ CREATE TABLE users (
     role user_role NOT NULL,
     name VARCHAR(100) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
-    phone VARCHAR(13) UNIQUE NOT NULL CHECK (phone LIKE '+254%'),
-    password_hash VARCHAR(255) NOT NULL,
+    phone VARCHAR(13) UNIQUE CHECK (phone LIKE '+254%'),
+    verified BOOLEAN DEFAULT false,
+    password_hash VARCHAR(255),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

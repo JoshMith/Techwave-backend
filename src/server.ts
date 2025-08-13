@@ -17,7 +17,7 @@ import productOffersRoutes from './routes/productOffersRoutes'
 import paymentsRoutes from './routes/paymentsRoutes'
 import reviewsRoutes from './routes/reviewsRoutes'
 import deliveryPriceRoutes from './routes/deliveryPriceRoutes'
-import passport from 'passport'
+import passport from './config/googleStrategy'
 import session from 'express-session'
 import path from 'path' // For serving static files
 
@@ -36,7 +36,7 @@ app.use(cookieParser())
 
 // CORS middleware
 app.use(cors({
-    origin: ["http://localhost:4200", "http://localhost:3000"], // Allow all origins, you can specify a specific origin if needed
+    origin: ["http://localhost:4200", "http://localhost:3000", "https://techwave-neon.vercel.app"], // Allow all origins, you can specify a specific origin if needed
     methods: "GET, POST, PUT, DELETE, OPTIONS",
     credentials: true, //allows cookies and auth headers
     allowedHeaders: "Content-Type, Authorization, X-Requested-With",
@@ -106,7 +106,7 @@ app.get("/", (req, res) => {
     <h1>Welcome to Techwave Backend API</h1>
     <p>This is the backend API for Techwave, a platform for managing products, orders, and more.</p>
     <p>Explore the API endpoints to interact with the system.</p>
-    <p>For more visualization, visit our <a href="http://localhost:4200">Application</a>.</p>
+    <p>For more visualization, visit our <a href="https://techwave-neon.vercel.app">Application</a>.</p>
     <p>Enjoy building with Techwave!</p>
 </body>
 </html>`)

@@ -20,7 +20,8 @@ passport.use(
       try {
         // Extract user information from Google profile
         const { given_name, family_name, email } = profile._json;
-        
+        const phoneNumber = profile.phone_number; // or check profile._json
+
         // Check if user exists in database
         const userExists = await pool.query("SELECT user_id FROM users WHERE email = $1", [email]);
 
@@ -33,9 +34,9 @@ passport.use(
           const newUser = await pool.query(
             `INSERT INTO users
               (name, email, verified, role)
-            VALUES ($1, $2, $3, $4, $5)
+            VALUES ($1, $2, $3, $4)
             RETURNING *`,
-            [given_name + family_name, email, true, 'customer'] // Default role is 'member'
+            [given_name + " " + family_name, email, true, 'customer'] // Default role is 'customer'
           );
 
           return done(null, newUser.rows[0]);
