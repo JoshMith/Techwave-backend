@@ -8,7 +8,7 @@ router.get("/",  getUsers)
 router.get("/:id", protect, getUserById)
 router.get("/profile", protect, getCurrentUserProfile)
 router.post("/", protect, createUser)
-router.put("/:id", protect, updateUser)
+router.put("/:id",  updateUser)
 router.delete("/:id", protect, deleteUser)
 
 

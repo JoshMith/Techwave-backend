@@ -26,8 +26,12 @@ export const getOrders = asyncHandler(async (req: UserRequest, res: express.Resp
             o.total_amount, 
             o.status, 
             o.notes, 
-            o.created_at, 
+            o.created_at,
+            o.updated_at,
             u.name AS user_name,
+            P.title AS product_name,
+            P.price AS product_price,
+            oi.quantity AS product_quantity,
             a.city AS city,
             a.street AS street,
             a.building AS building,
@@ -35,6 +39,8 @@ export const getOrders = asyncHandler(async (req: UserRequest, res: express.Resp
         FROM orders o
         JOIN users u ON o.user_id = u.user_id
         JOIN addresses a ON o.address_id = a.address_id
+        JOIN order_items oi ON o.order_id = oi.order_id
+        JOIN products p ON oi.product_id = p.product_id
         ORDER BY o.created_at DESC
     `;
     const result = await pool.query(query);

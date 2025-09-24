@@ -153,29 +153,63 @@ export const createProduct = asyncHandler(async (req: UserRequest, res: express.
 // @access  Private/Seller
 export const updateProduct = asyncHandler(async (req: UserRequest, res: express.Response) => {
     const { id } = req.params;
-    const { title, description, price, sale_price, stock, specs, category_id } = req.body;
     const seller_id = req.user?.user_id; // Assuming the user is a seller
 
     if (!seller_id) {
         return res.status(401).json({ message: "Unauthorized" });
     }
 
+    const { title, description, price, sale_price, stock, specs, category_id } = req.body;
+
+    const fieldsToUpdate: string[] = [];
+    const values: any[] = [];
+    let index = 1;
+
+    if (title !== undefined) {
+        fieldsToUpdate.push(`title = $${index++}`);
+        values.push(title);
+    }
+    if (description !== undefined) {
+        fieldsToUpdate.push(`description = $${index++}`);
+        values.push(description);
+    }
+    if (price !== undefined) {
+        fieldsToUpdate.push(`price = $${index++}`);
+        values.push(price);
+    }
+    if (sale_price !== undefined) {
+        fieldsToUpdate.push(`sale_price = $${index++}`);
+        values.push(sale_price);
+    }
+    if (stock !== undefined) {
+        fieldsToUpdate.push(`stock = $${index++}`);
+        values.push(stock);
+    }
+    if (specs !== undefined) {
+        fieldsToUpdate.push(`specs = $${index++}`);
+        values.push(specs);
+    }
+    if (category_id !== undefined) {
+        fieldsToUpdate.push(`category_id = $${index++}`);
+        values.push(category_id);
+    }
+
+    if (fieldsToUpdate.length === 0) {
+        return res.status(400).json({ message: "No fields provided for update" });
+    }
+
+    fieldsToUpdate.push(`updated_at = CURRENT_TIMESTAMP`);
+
+    values.push(id);
+    values.push(seller_id);
+
     const query = `
         UPDATE products
-        SET 
-            title = $1, 
-            description = $2, 
-            price = $3, 
-            sale_price = $4, 
-            stock = $5, 
-            specs = $6,
-            category_id = $7,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE product_id = $8 AND seller_id = $9
+        SET ${fieldsToUpdate.join(", ")}
+        WHERE product_id = $${index++} AND seller_id = $${index}
         RETURNING product_id
     `;
-    const values = [title, description, price, sale_price || null, stock || 0, specs || null, category_id, id, seller_id];
-    
+
     const result = await pool.query(query, values);
 
     if (result.rows.length === 0) {

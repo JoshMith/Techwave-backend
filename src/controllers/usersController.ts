@@ -113,7 +113,7 @@ export const createUser = asyncHandler(async (req: Request, res: Response) => {
 // @access  Private
 export const updateUser = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { name, email, phone } = req.body;
+    const { name, email, phone, role } = req.body;
 
     // Verify user exists
     const userExists = await pool.query(
@@ -145,8 +145,9 @@ export const updateUser = asyncHandler(async (req: Request, res: Response) => {
             name = $1,
             email = $2,
             phone = $3,
+            role = $4,
             updated_at = CURRENT_TIMESTAMP
-        WHERE user_id = $4
+        WHERE user_id = $5
         RETURNING 
             user_id, 
             name, 
@@ -160,6 +161,7 @@ export const updateUser = asyncHandler(async (req: Request, res: Response) => {
         name,
         email,
         phone,
+        role,
         id
     ]);
 
