@@ -102,13 +102,34 @@ export const updateReview = asyncHandler(async (req: UserRequest, res: express.R
     const { id } = req.params;
     const { rating, comment } = req.body;
 
+    const fieldsToUpdate: string[] = [];
+    const values: any[] = [];
+    let index = 1;
+
+    if (rating ) {
+        fieldsToUpdate.push(`rating = $${index++}`);
+        values.push(rating);
+    }
+    if (comment ) {
+        fieldsToUpdate.push(`comment = $${index++}`);
+        values.push(comment);
+    }
+
+    if (fieldsToUpdate.length === 0) {
+        return res.status(400).json({ message: "No fields provided for update" });
+    }
+
+    fieldsToUpdate.push(`created_at = CURRENT_TIMESTAMP`);
+    values.push(id);
+    values.push(req.user?.user_id);
+
     const query = `
         UPDATE reviews
-        SET rating = $1, comment = $2, created_at = CURRENT_TIMESTAMP
-        WHERE review_id = $3 AND user_id = $4
+        SET ${fieldsToUpdate.join(", ")}
+        WHERE review_id = $${index++} AND user_id = $${index++}
         RETURNING *
     `;
-    const values = [rating, comment, id, req.user?.user_id];
+
     const result = await pool.query(query, values);
 
     if (result.rows.length === 0) {

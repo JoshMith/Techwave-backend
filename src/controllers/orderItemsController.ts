@@ -84,13 +84,46 @@ export const updateOrderItem = asyncHandler(async (req: express.Request, res: ex
     const { id } = req.params;
     const { order_id, product_id, quantity, unit_price, discount } = req.body;
 
+    const fieldsToUpdate: string[] = [];
+    const values: any[] = [];
+    let index = 1;
+
+    if (order_id) {
+        fieldsToUpdate.push(`order_id = $${index++}`);
+        values.push(order_id);
+    }
+    if (product_id) {
+        fieldsToUpdate.push(`product_id = $${index++}`);
+        values.push(product_id);
+    }
+    if (quantity) {
+        fieldsToUpdate.push(`quantity = $${index++}`);
+        values.push(quantity);
+    }
+    if (unit_price) {
+        fieldsToUpdate.push(`unit_price = $${index++}`);
+        values.push(unit_price);
+    }
+    if (discount) {
+        fieldsToUpdate.push(`discount = $${index++}`);
+        values.push(discount);
+    }
+
+    if (fieldsToUpdate.length === 0) {
+        return res.status(400).json({ message: "No fields provided for update" });
+    }
+
+    fieldsToUpdate.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(id);
+
     const query = `
         UPDATE order_items
-        SET order_id = $1, product_id = $2, quantity = $3, unit_price = $4, discount = $5
-        WHERE order_item_id = $6
+        SET ${fieldsToUpdate.join(", ")}
+        WHERE order_item_id = $${index++}
         RETURNING order_item_id, order_id, product_id, quantity, unit_price, discount
     `;
-    const result = await pool.query(query, [order_id, product_id, quantity, unit_price, discount, id]);
+
+    const result = await pool.query(query, values);
 
     if (result.rows.length === 0) {
         return res.status(404).json({ message: "Order item not found" });

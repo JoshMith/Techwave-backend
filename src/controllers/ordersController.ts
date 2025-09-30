@@ -107,18 +107,43 @@ export const createOrder = asyncHandler(async (req: UserRequest, res: express.Re
 // @access  Private
 export const updateOrder = asyncHandler(async (req: UserRequest, res: express.Response) => {
     const { id } = req.params;
-    const { status, notes } = req.body;
+    const { status, notes, address_id, total_amount } = req.body;
+
+    const fieldsToUpdate: string[] = [];
+    const values: any[] = [];
+    let index = 1;
+
+    if (status) {
+        fieldsToUpdate.push(`status = $${index++}`);
+        values.push(status);
+    }
+    if (notes) {
+        fieldsToUpdate.push(`notes = $${index++}`);
+        values.push(notes);
+    }
+    if (address_id) {
+        fieldsToUpdate.push(`address_id = $${index++}`);
+        values.push(address_id);
+    }
+    if (total_amount) {
+        fieldsToUpdate.push(`total_amount = $${index++}`);
+        values.push(total_amount);
+    }
+
+    if (fieldsToUpdate.length === 0) {
+        return res.status(400).json({ message: "No fields provided for update" });
+    }
+
+    fieldsToUpdate.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(id);
 
     const query = `
         UPDATE orders
-        SET 
-            status = $1, 
-            notes = $2, 
-            updated_at = CURRENT_TIMESTAMP
-        WHERE order_id = $3
-        RETURNING order_id, status, updated_at
+        SET ${fieldsToUpdate.join(", ")}
+        WHERE order_id = $${index++}
+        RETURNING order_id, status, notes, address_id, total_amount, updated_at
     `;
-    const values = [status, notes, id];
+
     const result = await pool.query(query, values);
 
     if (result.rows.length === 0) {

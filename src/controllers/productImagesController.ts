@@ -167,9 +167,32 @@ export const updateProductImage = asyncHandler(async (req: UserRequest, res: exp
   );
 
   if (imageCheck.rows.length === 0) {
-    res.status(404);
-    throw new Error("Image not found or unauthorized");
+    return res.status(404).json({ message: "Image not found or unauthorized" });
   }
+
+  const fieldsToUpdate: string[] = [];
+  const values: any[] = [];
+  let index = 1;
+
+  if (alt_text ) {
+    fieldsToUpdate.push(`alt_text = $${index++}`);
+    values.push(alt_text);
+  }
+  if (is_primary ) {
+    fieldsToUpdate.push(`is_primary = $${index++}`);
+    values.push(is_primary);
+  }
+  if (sort_order ) {
+    fieldsToUpdate.push(`sort_order = $${index++}`);
+    values.push(sort_order);
+  }
+
+  if (fieldsToUpdate.length === 0) {
+    return res.status(400).json({ message: "No fields provided for update" });
+  }
+
+  fieldsToUpdate.push(`updated_at = CURRENT_TIMESTAMP`);
+  values.push(imageId);
 
   // If setting as primary, first reset existing primary image
   if (is_primary === true) {
@@ -183,20 +206,16 @@ export const updateProductImage = asyncHandler(async (req: UserRequest, res: exp
 
   const query = `
     UPDATE product_images
-    SET
-      alt_text = COALESCE($1, alt_text),
-      is_primary = COALESCE($2, is_primary),
-      sort_order = COALESCE($3, sort_order)
-    WHERE image_id = $4
+    SET ${fieldsToUpdate.join(", ")}
+    WHERE image_id = $${index++}
     RETURNING image_id, image_url, alt_text, is_primary, sort_order
   `;
 
-  const result = await pool.query(query, [
-    alt_text || null,
-    is_primary || false,
-    sort_order || 0,
-    imageId,
-  ]);
+  const result = await pool.query(query, values);
+
+  if (result.rows.length === 0) {
+    return res.status(404).json({ message: "Image not found or unauthorized" });
+  }
 
   res.status(200).json(result.rows[0]);
 });

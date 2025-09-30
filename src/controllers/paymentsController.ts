@@ -110,25 +110,40 @@ export const confirmPayment = asyncHandler(async (req: UserRequest, res: express
     const { id } = req.params;
     const { isConfirmed } = req.body;
 
-    if (typeof isConfirmed !== 'boolean') {
-        return res.status(400).json({ message: "isConfirmed must be a boolean" });
+    const fieldsToUpdate: string[] = [];
+    const values: any[] = [];
+    let index = 1;
+
+    if (typeof isConfirmed === 'boolean') {
+        fieldsToUpdate.push(`is_confirmed = $${index++}`);
+        values.push(isConfirmed);
+        if (isConfirmed) {
+            fieldsToUpdate.push(`confirmed_at = NOW()`);
+        } else {
+            fieldsToUpdate.push(`confirmed_at = NULL`);
+        }
     }
 
+    if (fieldsToUpdate.length === 0) {
+        return res.status(400).json({ message: "No fields provided for update" });
+    }
+
+    values.push(id);
+
     const query = `
-        UPDATE payments 
-        SET is_confirmed = $1, confirmed_at = NOW() 
-        WHERE payment_id = $2
-        RETURNING *
+        UPDATE payments
+        SET ${fieldsToUpdate.join(", ")}
+        WHERE payment_id = $${index++}
+        RETURNING payment_id
     `;
-    const values = [isConfirmed, id];
-    
+
     const result = await pool.query(query, values);
 
     if (result.rows.length === 0) {
         return res.status(404).json({ message: "Payment not found" });
     }
 
-    res.status(200).json(result.rows[0]);
+    res.status(200).json({ message: "Payment confirmation updated", paymentId: result.rows[0].payment_id });
 });
 
 

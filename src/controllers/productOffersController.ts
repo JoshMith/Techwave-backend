@@ -84,26 +84,42 @@ export const createProductOffer = asyncHandler(async (req: UserRequest, res: exp
 // @route   PUT /api/product-offers/:id
 // @access  Private
 export const updateProductOffer = asyncHandler(async (req: UserRequest, res: express.Response) => {
-    const { id } = req.params;
-    const { productId, offerId } = req.body;
+    const { productId, offerId } = req.params;
+    const { newProductId, newOfferId } = req.body;
 
-    if (!productId || !offerId) {
-        return res.status(400).json({ message: 'Product ID and Offer ID are required' });
+    const fieldsToUpdate: string[] = [];
+    const values: any[] = [];
+    let index = 1;
+
+    if (newProductId) {
+        fieldsToUpdate.push(`product_id = $${index++}`);
+        values.push(newProductId);
+    }
+    if (newOfferId) {
+        fieldsToUpdate.push(`offer_id = $${index++}`);
+        values.push(newOfferId);
+    }
+
+    if (fieldsToUpdate.length === 0) {
+        return res.status(400).json({ message: "No fields provided for update" });
     }
 
     const query = `
         UPDATE product_offers
-        SET product_id = $1, offer_id = $2
-        WHERE product_id = $3 AND offer_id = $4
+        SET ${fieldsToUpdate.join(", ")}
+        WHERE product_id = $${index++} AND offer_id = $${index++}
         RETURNING *
     `;
-    const result = await pool.query(query, [productId, offerId, id]);
+
+    values.push(productId, offerId);
+
+    const result = await pool.query(query, values);
 
     if (result.rows.length === 0) {
-        return res.status(404).json({ message: 'Product offer not found' });
+        return res.status(404).json({ message: "Product offer not found" });
     }
 
-    res.status(200).json(result.rows[0]);
+    res.status(200).json({ message: "Product offer updated successfully", productOffer: result.rows[0] });
 });
 
 

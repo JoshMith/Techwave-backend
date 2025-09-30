@@ -101,25 +101,52 @@ export const updateAddress = asyncHandler(async (req: UserRequest, res: Response
     const { id } = req.params;
     const { city, street, building, postal_code, is_default } = req.body;
 
-    if (!city || !street) {
-        res.status(400);
-        throw new Error("City and street are required");
+    const fieldsToUpdate: string[] = [];
+    const values: any[] = [];
+    let index = 1;
+
+    if (city) {
+        fieldsToUpdate.push(`city = $${index++}`);
+        values.push(city);
     }
+    if (street) {
+        fieldsToUpdate.push(`street = $${index++}`);
+        values.push(street);
+    }
+    if (building ) {
+        fieldsToUpdate.push(`building = $${index++}`);
+        values.push(building);
+    }
+    if (postal_code ) {
+        fieldsToUpdate.push(`postal_code = $${index++}`);
+        values.push(postal_code);
+    }
+    if (is_default ) {
+        fieldsToUpdate.push(`is_default = $${index++}`);
+        values.push(is_default);
+    }
+
+    if (fieldsToUpdate.length === 0) {
+        return res.status(400).json({ message: "No fields provided for update" });
+    }
+
+    fieldsToUpdate.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(id, userId);
 
     const query = `
         UPDATE addresses
-        SET city = $1, street = $2, building = $3, postal_code = $4, is_default = $5
-        WHERE address_id = $6 AND user_id = $7
+        SET ${fieldsToUpdate.join(", ")}
+        WHERE address_id = $${index++} AND user_id = $${index++}
         RETURNING address_id
     `;
-    const result = await pool.query(query, [city, street, building, postal_code, is_default, id, userId]);
+
+    const result = await pool.query(query, values);
 
     if (result.rows.length === 0) {
-        res.status(404);
-        throw new Error("Address not found");
+        return res.status(404).json({ message: "Address not found" });
     }
 
-    res.status(200).json({ address_id: result.rows[0].address_id });
+    res.status(200).json({ message: "Address updated successfully", address_id: result.rows[0].address_id });
 });
 
 

@@ -102,19 +102,49 @@ export const updateSpecialOffer = asyncHandler(async (req: UserRequest, res: exp
     const { id } = req.params;
     const { title, description, discount_percent, banner_image_url, valid_until, is_active } = req.body;
 
+    const fieldsToUpdate: string[] = [];
+    const values: any[] = [];
+    let index = 1;
+
+    if (title) {
+        fieldsToUpdate.push(`title = $${index++}`);
+        values.push(title);
+    }
+    if (description) {
+        fieldsToUpdate.push(`description = $${index++}`);
+        values.push(description);
+    }
+    if (discount_percent) {
+        fieldsToUpdate.push(`discount_percent = $${index++}`);
+        values.push(discount_percent);
+    }
+    if (banner_image_url) {
+        fieldsToUpdate.push(`banner_image_url = $${index++}`);
+        values.push(banner_image_url);
+    }
+    if (valid_until) {
+        fieldsToUpdate.push(`valid_until = $${index++}`);
+        values.push(valid_until);
+    }
+    if (typeof is_active === "boolean") {
+        fieldsToUpdate.push(`is_active = $${index++}`);
+        values.push(is_active);
+    }
+
+    if (fieldsToUpdate.length === 0) {
+        return res.status(400).json({ message: "No fields provided for update" });
+    }
+
+    fieldsToUpdate.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(id);
+
     const query = `
         UPDATE special_offers
-        SET 
-            title = $1,
-            description = $2,
-            discount_percent = $3,
-            banner_image_url = $4,
-            valid_until = $5,
-            is_active = $6
-        WHERE offer_id = $7
+        SET ${fieldsToUpdate.join(", ")}
+        WHERE offer_id = $${index++}
         RETURNING *
     `;
-    const values = [title, description, discount_percent, banner_image_url, valid_until, is_active, id];
+
     const result = await pool.query(query, values);
 
     if (result.rows.length === 0) {

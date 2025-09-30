@@ -129,41 +129,42 @@ export const updateSeller = asyncHandler(async (req: UserRequest, res: Response)
     const { id } = req.params;
     const { business_name, tax_id, business_license } = req.body;
 
-    // Verify seller exists
-    const sellerExists = await pool.query(
-        "SELECT seller_id FROM sellers WHERE seller_id = $1",
-        [id]
-    );
+    const fieldsToUpdate: string[] = [];
+    const values: any[] = [];
+    let index = 1;
 
-    if (sellerExists.rows.length === 0) {
-        res.status(404);
-        throw new Error("Seller not found");
+    if (business_name) {
+        fieldsToUpdate.push(`business_name = $${index++}`);
+        values.push(business_name);
+    }
+    if (tax_id) {
+        fieldsToUpdate.push(`tax_id = $${index++}`);
+        values.push(tax_id);
+    }
+    if (business_license) {
+        fieldsToUpdate.push(`business_license = $${index++}`);
+        values.push(business_license);
     }
 
+    if (fieldsToUpdate.length === 0) {
+        return res.status(400).json({ message: "No fields provided for update" });
+    }
+
+    fieldsToUpdate.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(id);
+
     const query = `
-        UPDATE sellers 
-        SET 
-            business_name = $1,
-            tax_id = $2,
-            business_license = $3,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE seller_id = $4
-        RETURNING 
-            seller_id, 
-            user_id, 
-            business_name, 
-            tax_id, 
-            business_license, 
-            total_sales, 
-            created_at
+        UPDATE sellers
+        SET ${fieldsToUpdate.join(", ")}
+        WHERE seller_id = $${index++}
+        RETURNING seller_id, user_id, business_name, tax_id, business_license, total_sales, created_at
     `;
 
-    const result = await pool.query(query, [
-        business_name,
-        tax_id,
-        business_license,
-        id
-    ]);
+    const result = await pool.query(query, values);
+
+    if (result.rows.length === 0) {
+        return res.status(404).json({ message: "Seller not found" });
+    }
 
     res.status(200).json(result.rows[0]);
 });

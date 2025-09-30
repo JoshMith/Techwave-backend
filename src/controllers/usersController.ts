@@ -115,58 +115,65 @@ export const updateUser = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const { name, email, phone, role } = req.body;
 
-    // Verify user exists
-    const userExists = await pool.query(
-        "SELECT user_id FROM users WHERE user_id = $1",
-        [id]
-    );
+    const fieldsToUpdate: string[] = [];
+    const values: any[] = [];
+    let index = 1;
 
-    if (userExists.rows.length === 0) {
-        res.status(404);
-        throw new Error("User not found");
+    if (name) {
+        fieldsToUpdate.push(`name = $${index++}`);
+        values.push(name);
+    }
+    if (email) {
+        fieldsToUpdate.push(`email = $${index++}`);
+        values.push(email);
+    }
+    if (phone) {
+        fieldsToUpdate.push(`phone = $${index++}`);
+        values.push(phone);
+    }
+    if (role) {
+        fieldsToUpdate.push(`role = $${index++}`);
+        values.push(role);
     }
 
-    // Check if new email/phone is already taken by another user
-    const conflictCheck = await pool.query(
-        `SELECT user_id FROM users 
-        WHERE (email = $1 OR phone = $2) 
-        AND user_id != $3`,
-        [email, phone, id]
-    );
-
-    if (conflictCheck.rows.length > 0) {
-        res.status(400);
-        throw new Error("Email or phone number already in use by another account");
+    if (fieldsToUpdate.length === 0) {
+        return res.status(400).json({ message: "No fields provided for update" });
     }
+
+    // Check for email/phone conflicts if those fields are being updated
+    if (email || phone) {
+        const conflictQuery = `
+            SELECT user_id FROM users
+            WHERE (email = $1 OR phone = $2)
+            AND user_id != $3
+        `;
+        const conflictResult = await pool.query(conflictQuery, [
+            email ?? null,
+            phone ?? null,
+            id
+        ]);
+        if (conflictResult.rows.length > 0) {
+            return res.status(400).json({ message: "Email or phone number already in use by another account" });
+        }
+    }
+
+    fieldsToUpdate.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(id);
 
     const query = `
-        UPDATE users 
-        SET 
-            name = $1,
-            email = $2,
-            phone = $3,
-            role = $4,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE user_id = $5
-        RETURNING 
-            user_id, 
-            name, 
-            email, 
-            phone, 
-            role, 
-            created_at
+        UPDATE users
+        SET ${fieldsToUpdate.join(", ")}
+        WHERE user_id = $${index++}
+        RETURNING user_id, name, email, phone, role, created_at
     `;
 
-    const result = await pool.query(query, [
-        name,
-        email,
-        phone,
-        role,
-        id
-    ]);
+    const result = await pool.query(query, values);
+
+    if (result.rows.length === 0) {
+        return res.status(404).json({ message: "User not found" });
+    }
 
     res.status(200).json(result.rows[0]);
-    
 });
 
 // @desc    Delete a user

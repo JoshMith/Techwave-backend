@@ -137,17 +137,42 @@ export const updateCategory = asyncHandler(async (req: UserRequest, res: express
     const { id } = req.params;
     const { name, description, featured, icon_path } = req.body;
 
+    const fieldsToUpdate: string[] = [];
+    const values: any[] = [];
+    let index = 1;
+
+    if (name) {
+        fieldsToUpdate.push(`name = $${index++}`);
+        values.push(name);
+    }
+    if (description) {
+        fieldsToUpdate.push(`description = $${index++}`);
+        values.push(description);
+    }
+    if (featured ) {
+        fieldsToUpdate.push(`featured = $${index++}`);
+        values.push(featured);
+    }
+    if (icon_path) {
+        fieldsToUpdate.push(`icon_path = $${index++}`);
+        values.push(icon_path);
+    }
+
+    if (fieldsToUpdate.length === 0) {
+        return res.status(400).json({ message: "No fields provided for update" });
+    }
+
+    fieldsToUpdate.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(id);
+
     const query = `
         UPDATE categories
-        SET 
-            name = $1, 
-            description = $2, 
-            featured = $3, 
-            icon_path = $4
-        WHERE category_id = $5
+        SET ${fieldsToUpdate.join(", ")}
+        WHERE category_id = $${index++}
         RETURNING category_id, name, description, featured, icon_path, created_at
     `;
-    const result = await pool.query(query, [name, description, featured || false, icon_path || null, id]);
+
+    const result = await pool.query(query, values);
 
     if (result.rows.length === 0) {
         return res.status(404).json({ message: "Category not found" });

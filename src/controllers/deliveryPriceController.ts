@@ -96,17 +96,41 @@ export const updateDeliveryPrice = asyncHandler(async (req: UserRequest, res: ex
     const { id } = req.params;
     const { city, min_free_delivery, standard_fee, is_active } = req.body;
 
+    const fieldsToUpdate: string[] = [];
+    const values: any[] = [];
+    let index = 1;
+
+    if (city ) {
+        fieldsToUpdate.push(`city = $${index++}`);
+        values.push(city);
+    }
+    if (min_free_delivery ) {
+        fieldsToUpdate.push(`min_free_delivery = $${index++}`);
+        values.push(min_free_delivery);
+    }
+    if (standard_fee ) {
+        fieldsToUpdate.push(`standard_fee = $${index++}`);
+        values.push(standard_fee);
+    }
+    if (is_active ) {
+        fieldsToUpdate.push(`is_active = $${index++}`);
+        values.push(is_active);
+    }
+
+    if (fieldsToUpdate.length === 0) {
+        return res.status(400).json({ message: "No fields provided for update" });
+    }
+
+    fieldsToUpdate.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(id);
+
     const query = `
         UPDATE delivery_pricing
-        SET 
-            city = COALESCE($1, city),
-            min_free_delivery = COALESCE($2, min_free_delivery),
-            standard_fee = COALESCE($3, standard_fee),
-            is_active = COALESCE($4, is_active)
-        WHERE rule_id = $5
+        SET ${fieldsToUpdate.join(", ")}
+        WHERE rule_id = $${index++}
         RETURNING *
     `;
-    const values = [city, min_free_delivery || 0, standard_fee, is_active, id];
+
     const result = await pool.query(query, values);
 
     if (result.rows.length === 0) {
