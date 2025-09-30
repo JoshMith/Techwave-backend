@@ -36,7 +36,7 @@ export const protect = asyncHandler(async (req: UserRequest, res: Response, next
 
         //get the user from database
         const userQuery = await pool.query(
-            "SELECT user_id, name, email, role, FROM users WHERE user_id = $1",
+            "SELECT user_id, name, email, role FROM users WHERE user_id = $1",
             [decoded.userId]
         );
 
