@@ -74,7 +74,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'development' ? false : true, // Set to true if using HTTPS // in production
+    secure: process.env.NODE_ENV === 'production', // Set to true if using HTTPS. //
     httpOnly: true, // Helps prevent XSS attacks // JS on client side cannot access the cookie
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
