@@ -129,8 +129,7 @@ export const getProductsByCategoryName = asyncHandler(async (req: UserRequest, r
 // @route   POST /api/products
 // @access  Private/Seller
 export const createProduct = asyncHandler(async (req: UserRequest, res: express.Response) => {
-    const { title, description, price, sale_price, stock, specs, category_id } = req.body;
-    const seller_id = req.user?.user_id; // Assuming the user is a seller
+    const { seller_id, title, description, price, sale_price, stock, specs, category_id } = req.body;
 
     if (!seller_id) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -141,8 +140,8 @@ export const createProduct = asyncHandler(async (req: UserRequest, res: express.
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING product_id
     `;
-    const values = [seller_id, category_id, title, description, price, sale_price || null, stock || 0, specs || null];
-    
+    const values = [seller_id, category_id, title, description, price, sale_price || null, stock || 0, specs ? JSON.stringify(specs) : null];
+
     const result = await pool.query(query, values);
     res.status(201).json({ message: "Product created successfully", productId: result.rows[0].product_id });
 });
@@ -153,11 +152,6 @@ export const createProduct = asyncHandler(async (req: UserRequest, res: express.
 // @access  Private/Seller
 export const updateProduct = asyncHandler(async (req: UserRequest, res: express.Response) => {
     const { id } = req.params;
-    const seller_id = req.user?.user_id; // Assuming the user is a seller
-
-    if (!seller_id) {
-        return res.status(401).json({ message: "Unauthorized" });
-    }
 
     const { title, description, price, sale_price, stock, specs, category_id } = req.body;
 
@@ -165,31 +159,31 @@ export const updateProduct = asyncHandler(async (req: UserRequest, res: express.
     const values: any[] = [];
     let index = 1;
 
-    if (title !== undefined) {
+    if (title) {
         fieldsToUpdate.push(`title = $${index++}`);
         values.push(title);
     }
-    if (description !== undefined) {
+    if (description) {
         fieldsToUpdate.push(`description = $${index++}`);
         values.push(description);
     }
-    if (price !== undefined) {
+    if (price) {
         fieldsToUpdate.push(`price = $${index++}`);
         values.push(price);
     }
-    if (sale_price !== undefined) {
+    if (sale_price) {
         fieldsToUpdate.push(`sale_price = $${index++}`);
         values.push(sale_price);
     }
-    if (stock !== undefined) {
+    if (stock) {
         fieldsToUpdate.push(`stock = $${index++}`);
         values.push(stock);
     }
-    if (specs !== undefined) {
+    if (specs) {
         fieldsToUpdate.push(`specs = $${index++}`);
         values.push(specs);
     }
-    if (category_id !== undefined) {
+    if (category_id) {
         fieldsToUpdate.push(`category_id = $${index++}`);
         values.push(category_id);
     }
@@ -201,12 +195,11 @@ export const updateProduct = asyncHandler(async (req: UserRequest, res: express.
     fieldsToUpdate.push(`updated_at = CURRENT_TIMESTAMP`);
 
     values.push(id);
-    values.push(seller_id);
 
     const query = `
         UPDATE products
         SET ${fieldsToUpdate.join(", ")}
-        WHERE product_id = $${index++} AND seller_id = $${index}
+        WHERE product_id = $${index++}
         RETURNING product_id
     `;
 
@@ -225,18 +218,13 @@ export const updateProduct = asyncHandler(async (req: UserRequest, res: express.
 // @access  Private/Seller
 export const deleteProduct = asyncHandler(async (req: UserRequest, res: express.Response) => {
     const { id } = req.params;
-    const seller_id = req.user?.user_id; // Assuming the user is a seller
-
-    if (!seller_id) {
-        return res.status(401).json({ message: "Unauthorized" });
-    }
 
     const query = `
         DELETE FROM products
-        WHERE product_id = $1 AND seller_id = $2
+        WHERE product_id = $1
         RETURNING product_id
     `;
-    const result = await pool.query(query, [id, seller_id]);
+    const result = await pool.query(query, [id]);
 
     if (result.rows.length === 0) {
         return res.status(404).json({ message: "Product not found or unauthorized" });
