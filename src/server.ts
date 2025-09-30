@@ -75,7 +75,7 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     secure: process.env.NODE_ENV === 'production', // Set to true if using HTTPS. //
-    // httpOnly: true, // Helps prevent XSS attacks // JS on client side cannot access the cookie
+    httpOnly: true, // Helps prevent XSS attacks // JS on client side cannot access the cookie
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
@@ -86,32 +86,85 @@ app.use(passport.session());
 
 
 app.get("/", (req, res) => {
-    res.send(`
+  res.send(`
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Techwave Backend API</title>
-    <style>
-        font-family: Arial, sans-serif;
-        background-color: #f4f4f4;
-        color: #333;
-        text-align: center;
-        padding: 50px;
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0.1);
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Techwave Backend API</title>
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Montserrat', Arial, sans-serif;
+      background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+      color: #fff;
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      background: rgba(255,255,255,0.08);
+      padding: 40px 32px;
+      border-radius: 18px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+      text-align: center;
+      max-width: 420px;
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 18px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+    p {
+      font-size: 1.08rem;
+      margin-bottom: 18px;
+      font-weight: 400;
+    }
+    .btn {
+      display: inline-block;
+      padding: 14px 32px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(90deg, #ff512f 0%, #dd2476 100%);
+      border: none;
+      border-radius: 8px;
+      text-decoration: none;
+      box-shadow: 0 2px 8px rgba(221,36,118,0.18);
+      transition: background 0.2s, transform 0.2s;
+      cursor: pointer;
+    }
+    .btn:hover {
+      background: linear-gradient(90deg, #dd2476 0%, #ff512f 100%);
+      transform: translateY(-2px) scale(1.04);
+    }
+    @media (max-width: 500px) {
+      .container {
+        padding: 24px 8px;
+      }
+      h1 {
+        font-size: 2rem;
+      }
+    }
+  </style>
 </head>
 <body>
-    <h1>Welcome to Techwave Backend API</h1>
-    <p>This is the backend API for Techwave, a platform for managing products, orders, and more.</p>
-    <p>Explore the API endpoints to interact with the system.</p>
-    <p>For more visualization, visit our <a href="https://techwave-neon.vercel.app">Application</a>.</p>
-    <p>Enjoy building with Techwave!</p>
+  <div class="container">
+    <h1>🚀 Techwave Backend API</h1>
+    <p>Welcome to the backend API for <strong>Techwave</strong>.<br>
+    Manage products, orders, users, and more with powerful endpoints.</p>
+    <p>Ready to explore the frontend?</p>
+    <a class="btn" href="https://techwave-neon.vercel.app" target="_blank">Go to Techwave Frontend</a>
+    <p style="margin-top:22px;font-size:0.95rem;opacity:0.7;">Enjoy building with Techwave!</p>
+  </div>
 </body>
-</html>`)
-})
+</html>
+  `);
+});
 
 //5. middlewares for error handlers 
 app.use(notFound)
