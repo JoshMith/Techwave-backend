@@ -57,6 +57,20 @@ export const loginUser = asyncHandler(async (req: Request, res: Response, next: 
         return;
     }
 
+    // Check if user is a seller and fetch seller details if applicable
+    let sellerData = null;
+    if (userQuery.rows[0].role === 'seller') {
+        const sellerQuery = await pool.query(
+            `SELECT seller_id, business_name, tax_id, business_license, total_sales
+             FROM sellers
+             WHERE user_id = $1`,
+            [userQuery.rows[0].user_id]
+        );
+        if (sellerQuery.rows.length > 0) {
+            sellerData = sellerQuery.rows[0];
+        }
+    }
+
     //query the user  
     const user = userQuery.rows[0];
 
@@ -80,6 +94,9 @@ export const loginUser = asyncHandler(async (req: Request, res: Response, next: 
             email: user.email,
             phone: user.phone,
             role: user.role
+        },
+        sellerData: {
+            ...sellerData
         }
     });
 

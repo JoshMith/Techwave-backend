@@ -201,3 +201,18 @@ export const toggleSpecialOfferActivation = asyncHandler(async (req: UserRequest
 });
 
 
+// Total number of orders
+export const getOffersCount = asyncHandler(async (req: UserRequest, res: express.Response) => {
+    try {
+        const query = "SELECT COUNT(*) AS offercount FROM special_offers";
+        const result = await pool.query(query);
+
+        const offersCount: number = parseInt(result.rows[0].offercount, 10);
+
+        res.status(200).json({ offersCount })
+
+    } catch (error) {
+        console.error("Error fetching special offer count:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+})

@@ -61,12 +61,22 @@ export const getOrderById = asyncHandler(async (req: UserRequest, res: express.R
             o.status, 
             o.notes, 
             o.created_at, 
+            oi.quantity, 
+            oi.unit_price, 
+            oi.discount,
+            p.product_id,
+            p.title AS product_title,
+            p.description AS product_description,
             u.name AS user_name,
+            u.email AS user_email,
+            u.phone AS user_phone,
             a.city AS city,
             a.street AS street,
             a.building AS building,
             a.postal_code AS postal_code
         FROM orders o
+        JOIN order_items oi ON o.order_id = oi.order_id
+        JOIN products p ON oi.product_id = p.product_id
         JOIN users u ON o.user_id = u.user_id
         JOIN addresses a ON o.address_id = a.address_id
         WHERE o.order_id = $1
@@ -174,6 +184,22 @@ export const deleteOrder = asyncHandler(async (req: UserRequest, res: express.Re
     res.status(200).json({ message: "Order deleted successfully", orderId: result.rows[0].order_id });
 });
 
+
+// Total number of orders
+export const getOrdersCount = asyncHandler(async (req: UserRequest, res: express.Response) => {
+    try {
+        const query = "SELECT COUNT(*) AS ordercount FROM orders";
+        const result = await pool.query(query);
+
+        const orderCount: number = parseInt(result.rows[0].ordercount, 10);
+
+        res.status(200).json({ orderCount })
+
+    } catch (error) {
+        console.error("Error fetching order count:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+})
 
 
 

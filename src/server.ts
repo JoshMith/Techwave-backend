@@ -20,6 +20,8 @@ import deliveryPriceRoutes from './routes/deliveryPriceRoutes'
 import passport from './config/googleStrategy'
 import session from 'express-session'
 import path from 'path' // For serving static files
+import cartItemsRoutes from './routes/cartItemsRoutes'
+import cartRoutes from './routes/cartRoutes'
 
 
 // 1:dotenv
@@ -51,6 +53,8 @@ app.use("/addresses", addressesRoutes)
 app.use("/categories", categoriesRoutes)
 app.use("/products", productsRoutes)
 app.use("/product-images", productImagesRoutes)
+app.use("/carts", cartRoutes) // Importing with require to handle ES module compatibility
+app.use("/cart-items", cartItemsRoutes) // Importing with require to handle ES module compatibility
 app.use("/orders", ordersRoutes)
 app.use("/order-items", orderItemsRoutes)
 app.use("/special-offers", specialOffersRoutes)

@@ -248,3 +248,19 @@ export const getCurrentUserProfile = asyncHandler(async (req: UserRequest, res: 
 
     res.status(200).json(result.rows[0]);
 });
+
+// Total number of customers
+export const getCustomerCount = asyncHandler(async (req: UserRequest, res: Response) => {
+    try {
+        const query = `SELECT COUNT(*) AS customercount FROM users WHERE role = 'customer' `;
+        const result = await pool.query(query);
+
+        const customerCount: number = parseInt(result.rows[0].customercount, 10);
+
+        res.status(200).json({ customerCount })
+
+    } catch (error) {
+        console.error("Error fetching customer count:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+})

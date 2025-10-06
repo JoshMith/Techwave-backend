@@ -23,24 +23,34 @@ passport.use(
         const phoneNumber = profile.phone_number; // or check profile._json
 
         // Check if user exists in database
-        const userExists = await pool.query("SELECT user_id FROM users WHERE email = $1", [email]);
+        const userExists = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
 
         if (userExists.rows.length > 0) {
           // User exists - return the user
           const user = userExists.rows[0];
+           //generate JWT token 
+          if (req.res) {
+            await generateToken(req.res, user.user_id, user.role);
+          }
           return done(null, user);
         } else {
           // User doesn't exist - create new user
           const newUser = await pool.query(
             `INSERT INTO users
-              (name, email, verified, role)
-            VALUES ($1, $2, $3, $4)
+              (name, email, verified, role, phone)
+            VALUES ($1, $2, $3, $4, $5)
             RETURNING *`,
-            [given_name + " " + family_name, email, true, 'customer'] // Default role is 'customer'
+            [given_name + " " + family_name, email, true, 'customer', phoneNumber] // Default role is 'customer'
           );
+
+          //generate JWT token 
+          if (req.res) {
+            await generateToken(req.res, newUser.rows[0].user_id, newUser.rows[0].role);
+          }
 
           return done(null, newUser.rows[0]);
         }
+
       } catch (error) {
         return done(error, null);
       }

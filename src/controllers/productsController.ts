@@ -152,40 +152,57 @@ export const createProduct = asyncHandler(async (req: UserRequest, res: express.
 // @access  Private/Seller
 export const updateProduct = asyncHandler(async (req: UserRequest, res: express.Response) => {
     const { id } = req.params;
-
-    const { title, description, price, sale_price, stock, specs, category_id } = req.body;
+    const {
+        title,
+        description,
+        price,
+        sale_price,
+        stock,
+        specs,
+        category_id,
+        rating,
+        review_count
+    } = req.body;
 
     const fieldsToUpdate: string[] = [];
     const values: any[] = [];
     let index = 1;
 
-    if (title) {
+    if (title ) {
         fieldsToUpdate.push(`title = $${index++}`);
         values.push(title);
     }
-    if (description) {
+    if (description ) {
         fieldsToUpdate.push(`description = $${index++}`);
         values.push(description);
     }
-    if (price) {
+    if (price ) {
         fieldsToUpdate.push(`price = $${index++}`);
         values.push(price);
     }
-    if (sale_price) {
+    if (sale_price ) {
         fieldsToUpdate.push(`sale_price = $${index++}`);
         values.push(sale_price);
     }
-    if (stock) {
+    if (stock ) {
         fieldsToUpdate.push(`stock = $${index++}`);
         values.push(stock);
     }
-    if (specs) {
+    if (specs ) {
         fieldsToUpdate.push(`specs = $${index++}`);
-        values.push(specs);
+        values.push(specs ? JSON.stringify(specs) : null);
     }
-    if (category_id) {
+    if (category_id ) {
         fieldsToUpdate.push(`category_id = $${index++}`);
         values.push(category_id);
+    }
+    if (rating ) {
+        fieldsToUpdate.push(`rating = $${index++}`);
+        values.push(rating);
+    }
+    if (review_count ) {
+        fieldsToUpdate.push(`review_count = $${index++}`);
+        values.push(review_count);
     }
 
     if (fieldsToUpdate.length === 0) {
@@ -193,13 +210,12 @@ export const updateProduct = asyncHandler(async (req: UserRequest, res: express.
     }
 
     fieldsToUpdate.push(`updated_at = CURRENT_TIMESTAMP`);
-
     values.push(id);
 
     const query = `
         UPDATE products
         SET ${fieldsToUpdate.join(", ")}
-        WHERE product_id = $${index++}
+        WHERE product_id = $${index}
         RETURNING product_id
     `;
 
