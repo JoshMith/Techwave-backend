@@ -70,6 +70,29 @@ export const getAddressById = asyncHandler(async (req: UserRequest, res: Respons
 });
 
 
+// @desc    Get address by user ID
+// @route   GET /api/addresses/:id
+// @access  Private
+export const getAddressByUserId = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const query = `
+        SELECT 
+            address_id,
+            city, 
+            street, 
+            building,
+            postal_code, 
+            is_default, 
+            created_at  
+        FROM addresses
+        WHERE user_id = $1
+        ORDER BY created_at DESC
+    `;
+    const result = await pool.query(query, [id]);
+    res.status(200).json(result.rows);
+});
+
+
 // @desc    Create a new address
 // @route   POST /api/addresses
 // @access  Private

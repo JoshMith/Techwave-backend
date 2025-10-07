@@ -212,12 +212,12 @@ export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
 
 
 // Get user profile from users table and addresses table
-export const getCurrentUserProfile = asyncHandler(async (req: UserRequest, res: Response) => {
-    const userId = req.user?.user_id;
+export const getCurrentUserProfile = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
 
-    if (!userId) {
-        res.status(401);
-        throw new Error("Not authorized, no user found");
+    if (!id) {
+        res.status(400);
+        throw new Error("User ID parameter is required");
     }
 
     const query = `
@@ -239,7 +239,7 @@ export const getCurrentUserProfile = asyncHandler(async (req: UserRequest, res: 
         WHERE u.user_id = $1
     `;
 
-    const result = await pool.query(query, [userId]);
+    const result = await pool.query(query, [id]);
 
     if (result.rows.length === 0) {
         res.status(404);
