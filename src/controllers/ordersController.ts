@@ -98,16 +98,16 @@ export const createOrder = asyncHandler(async (req: UserRequest, res: express.Re
     const { user_id, address_id, total_amount, status = 'pending', notes } = req.body;
 
     const query = `
-        INSERT INTO orders (user_id, address_id, total_amount, status, notes)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING order_id, created_at
+        INSERT INTO orders (user_id, cart_id, address_id, total_amount, status, notes)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING *
     `;
     const values = [user_id, address_id, total_amount, status, notes];
     const result = await pool.query(query, values);
 
     res.status(201).json({
-        orderId: result.rows[0].order_id,
-        createdAt: result.rows[0].created_at
+        message: "Order created successfully",
+        order: result.rows[0]
     });
 });
 

@@ -254,26 +254,30 @@ export const removeCartItem = asyncHandler(async (req: UserRequest, res: express
     });
 });
 
-// @desc    Get cart summary (total items and amount)
-// @route   GET /api/cart-items/cart/:cartId/summary
+// @desc    Get cart summary for a user (total items and subtotal)
+// @route   GET /api/cart-items/user/:userId/summary
 // @access  Public/Private
 export const getCartSummary = asyncHandler(async (req: UserRequest, res: express.Response) => {
     const { cartId } = req.params;
 
+    if (!cartId) {
+        return res.status(400).json({ message: "cartId is required" });
+    }
+
     const query = `
-        SELECT 
+        SELECT
             COUNT(ci.cart_item_id) AS total_items,
-            SUM(ci.quantity) AS total_quantity,
-            SUM(ci.quantity * ci.unit_price) AS total_amount
+            COALESCE(SUM(ci.quantity * ci.unit_price), 0) AS subtotal
         FROM cart_items ci
-        WHERE ci.cart_id = $1
+        JOIN carts c ON ci.cart_id = c.cart_id
+        WHERE c.cart_id = $1
     `;
     const result = await pool.query(query, [cartId]);
+    const row = result.rows[0] || { total_items: '0', subtotal: '0' };
 
     res.status(200).json({
-        cartId: parseInt(cartId),
-        totalItems: parseInt(result.rows[0].total_items) || 0,
-        totalQuantity: parseInt(result.rows[0].total_quantity) || 0,
-        totalAmount: parseFloat(result.rows[0].total_amount) || 0
+        cartId: Number(cartId),
+        totalItems: parseInt(row.total_items, 10) || 0,
+        subtotal: Number(row.subtotal) || 0
     });
 });
