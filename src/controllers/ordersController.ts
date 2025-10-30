@@ -95,14 +95,17 @@ export const getOrderById = asyncHandler(async (req: UserRequest, res: express.R
 // @route   POST /api/orders
 // @access  Private
 export const createOrder = asyncHandler(async (req: UserRequest, res: express.Response) => {
-    const { user_id, address_id, total_amount, status = 'pending', notes } = req.body;
+    const { user_id, cart_id, address_id, total_amount, status = 'pending', notes } = req.body;
+
+    console.log('Received order data:', req.body); // Debug log
+
 
     const query = `
         INSERT INTO orders (user_id, cart_id, address_id, total_amount, status, notes)
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING *
     `;
-    const values = [user_id, address_id, total_amount, status, notes];
+    const values = [user_id, cart_id, address_id, total_amount, status, notes];
     const result = await pool.query(query, values);
 
     res.status(201).json({
