@@ -97,7 +97,7 @@ export const getOrderById = asyncHandler(async (req: UserRequest, res: express.R
 export const createOrder = asyncHandler(async (req: UserRequest, res: express.Response) => {
     const { user_id, cart_id, address_id, total_amount, status = 'pending', notes } = req.body;
 
-    console.log('Received order data:', req.body); // Debug log
+    // console.log('Received order data:', req.body); // Debug log
 
 
     const query = `
