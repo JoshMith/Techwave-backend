@@ -7,8 +7,8 @@ import { protect } from '../middlewares/auth/protect';
 const router = express.Router()
 
 router.get("/",  getReviews);
-router.get("/:id", protect, getReviewById);
-router.get("/product/:productId", protect, getReviewsByProductId);
+router.get("/:id", getReviewById);
+router.get("/product/:productId", getReviewsByProductId);
 router.post("/", protect, createReview);
 router.put("/:id", protect, updateReview);
 router.delete("/:id", protect, deleteReview);
