@@ -64,12 +64,15 @@ app.use("/reviews", reviewsRoutes)
 app.use("/delivery-prices", deliveryPriceRoutes)
 
 // Update your static files configuration
-app.use('/public', express.static(path.join(__dirname, '../../public'), {
+app.use('/public', express.static(path.join(__dirname, '../public'), {
   setHeaders: (res, path) => {
     // Set proper cache headers
     res.set('Cache-Control', 'public, max-age=31536000');
   }
 }));
+
+// Serve static files from 'public' directory as root
+app.use(express.static(path.join(__dirname, '../public')));
 
 
 // Google strategy
