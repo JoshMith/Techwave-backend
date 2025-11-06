@@ -140,7 +140,7 @@ export const createProduct = asyncHandler(async (req: UserRequest, res: express.
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING product_id
     `;
-    const values = [seller_id, category_id, title, description, price, sale_price || null, stock || 0, specs ? JSON.stringify(specs) : null];
+    const values = [seller_id, category_id, title, description, price, sale_price || null, stock || 0, specs || null];
 
     const result = await pool.query(query, values);
     res.status(201).json({ message: "Product created successfully", productId: result.rows[0].product_id });
@@ -190,7 +190,7 @@ export const updateProduct = asyncHandler(async (req: UserRequest, res: express.
     }
     if (specs ) {
         fieldsToUpdate.push(`specs = $${index++}`);
-        values.push(specs ? JSON.stringify(specs) : null);
+        values.push(specs);
     }
     if (category_id ) {
         fieldsToUpdate.push(`category_id = $${index++}`);

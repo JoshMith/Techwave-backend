@@ -80,18 +80,65 @@ export const createReview = asyncHandler(async (req: UserRequest, res: express.R
         return res.status(400).json({ message: "Product ID and rating are required" });
     }
 
-    const query = `
-        INSERT INTO reviews (user_id, product_id, rating, comment)
-        VALUES ($1, $2, $3, $4)
-        RETURNING review_id, created_at
-    `;
-    const values = [req.user?.user_id, product_id, rating, comment];
-    const result = await pool.query(query, values);
+    // Start a transaction to ensure data consistency
+    const client = await pool.connect();
 
-    res.status(201).json({
-        message: "Review created successfully",
-        review: result.rows[0]
-    });
+    try {
+        await client.query('BEGIN');
+
+        // 1. Insert the new review
+        const insertReviewQuery = `
+            INSERT INTO reviews (user_id, product_id, rating, comment)
+            VALUES ($1, $2, $3, $4)
+            RETURNING review_id, created_at
+        `;
+        const insertValues = [req.user?.user_id, product_id, rating, comment];
+        const reviewResult = await client.query(insertReviewQuery, insertValues);
+
+        // 2. Calculate new average rating and review count
+        const statsQuery = `
+            SELECT 
+                COUNT(*) as review_count,
+                AVG(rating) as average_rating
+            FROM reviews 
+            WHERE product_id = $1
+        `;
+        const statsResult = await client.query(statsQuery, [product_id]);
+
+        const reviewCount = parseInt(statsResult.rows[0].review_count);
+        const averageRating = parseFloat(statsResult.rows[0].average_rating);
+
+        // 3. Update the product with new rating and review count
+        const updateProductQuery = `
+            UPDATE products 
+            SET 
+                rating = $1,
+                review_count = $2,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE product_id = $3
+            RETURNING product_id
+        `;
+        const updateValues = [averageRating, reviewCount, product_id];
+        await client.query(updateProductQuery, updateValues);
+
+        await client.query('COMMIT');
+
+        res.status(201).json({
+            message: "Review created successfully",
+            review: reviewResult.rows[0],
+            productStats: {
+                rating: averageRating,
+                review_count: reviewCount
+            }
+        });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error creating review:', error);
+        res.status(500).json({ message: "Failed to create review" });
+    } finally {
+        client.release();
+    }
 });
 
 
@@ -102,44 +149,101 @@ export const updateReview = asyncHandler(async (req: UserRequest, res: express.R
     const { id } = req.params;
     const { rating, comment } = req.body;
 
-    const fieldsToUpdate: string[] = [];
-    const values: any[] = [];
-    let index = 1;
+    const client = await pool.connect();
 
-    if (rating ) {
-        fieldsToUpdate.push(`rating = $${index++}`);
-        values.push(rating);
+    try {
+        await client.query('BEGIN');
+
+        // 1. First get the current review to know the product_id
+        const getReviewQuery = `SELECT product_id FROM reviews WHERE review_id = $1`;
+        const currentReview = await client.query(getReviewQuery, [id]);
+
+        if (currentReview.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ message: "Review not found" });
+        }
+
+        const product_id = currentReview.rows[0].product_id;
+
+        // 2. Update the review
+        const fieldsToUpdate: string[] = [];
+        const values: any[] = [];
+        let index = 1;
+
+        if (rating !== undefined) {
+            fieldsToUpdate.push(`rating = $${index++}`);
+            values.push(rating);
+        }
+        if (comment !== undefined) {
+            fieldsToUpdate.push(`comment = $${index++}`);
+            values.push(comment);
+        }
+
+        if (fieldsToUpdate.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ message: "No fields provided for update" });
+        }
+
+        fieldsToUpdate.push(`created_at = CURRENT_TIMESTAMP`);
+        values.push(id);
+        values.push(req.user?.user_id);
+
+        const updateReviewQuery = `
+            UPDATE reviews
+            SET ${fieldsToUpdate.join(", ")}
+            WHERE review_id = $${index++} AND user_id = $${index++}
+            RETURNING *
+        `;
+
+        const result = await client.query(updateReviewQuery, values);
+
+        if (result.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ message: "Review not found or you do not have permission to update it" });
+        }
+
+        // 3. Recalculate product stats
+        const statsQuery = `
+            SELECT 
+                COUNT(*) as review_count,
+                AVG(rating) as average_rating
+            FROM reviews 
+            WHERE product_id = $1
+        `;
+        const statsResult = await client.query(statsQuery, [product_id]);
+
+        const reviewCount = parseInt(statsResult.rows[0].review_count);
+        const averageRating = parseFloat(statsResult.rows[0].average_rating);
+
+        // 4. Update the product
+        const updateProductQuery = `
+            UPDATE products 
+            SET 
+                rating = $1,
+                review_count = $2,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE product_id = $3
+        `;
+        await client.query(updateProductQuery, [averageRating, reviewCount, product_id]);
+
+        await client.query('COMMIT');
+
+        res.status(200).json({
+            message: "Review updated successfully",
+            review: result.rows[0],
+            productStats: {
+                rating: averageRating,
+                review_count: reviewCount
+            }
+        });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error updating review:', error);
+        res.status(500).json({ message: "Failed to update review" });
+    } finally {
+        client.release();
     }
-    if (comment ) {
-        fieldsToUpdate.push(`comment = $${index++}`);
-        values.push(comment);
-    }
-
-    if (fieldsToUpdate.length === 0) {
-        return res.status(400).json({ message: "No fields provided for update" });
-    }
-
-    fieldsToUpdate.push(`created_at = CURRENT_TIMESTAMP`);
-    values.push(id);
-    values.push(req.user?.user_id);
-
-    const query = `
-        UPDATE reviews
-        SET ${fieldsToUpdate.join(", ")}
-        WHERE review_id = $${index++} AND user_id = $${index++}
-        RETURNING *
-    `;
-
-    const result = await pool.query(query, values);
-
-    if (result.rows.length === 0) {
-        return res.status(404).json({ message: "Review not found or you do not have permission to update it" });
-    }
-
-    res.status(200).json({
-        message: "Review updated successfully",
-        review: result.rows[0]
-    });
 });
 
 
@@ -149,22 +253,78 @@ export const updateReview = asyncHandler(async (req: UserRequest, res: express.R
 export const deleteReview = asyncHandler(async (req: UserRequest, res: express.Response) => {
     const { id } = req.params;
 
-    const query = `
-        DELETE FROM reviews
-        WHERE review_id = $1 AND user_id = $2
-        RETURNING *
-    `;
-    const values = [id, req.user?.user_id];
-    const result = await pool.query(query, values);
+    const client = await pool.connect();
 
-    if (result.rows.length === 0) {
-        return res.status(404).json({ message: "Review not found or you do not have permission to delete it" });
+    try {
+        await client.query('BEGIN');
+
+        // 1. First get the review to know the product_id
+        const getReviewQuery = `SELECT product_id FROM reviews WHERE review_id = $1`;
+        const currentReview = await client.query(getReviewQuery, [id]);
+
+        if (currentReview.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ message: "Review not found" });
+        }
+
+        const product_id = currentReview.rows[0].product_id;
+
+        // 2. Delete the review
+        const deleteQuery = `
+            DELETE FROM reviews
+            WHERE review_id = $1 AND user_id = $2
+            RETURNING *
+        `;
+        const deleteValues = [id, req.user?.user_id];
+        const result = await client.query(deleteQuery, deleteValues);
+
+        if (result.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ message: "Review not found or you do not have permission to delete it" });
+        }
+
+        // 3. Recalculate product stats
+        const statsQuery = `
+            SELECT 
+                COUNT(*) as review_count,
+                AVG(rating) as average_rating
+            FROM reviews 
+            WHERE product_id = $1
+        `;
+        const statsResult = await client.query(statsQuery, [product_id]);
+
+        const reviewCount = parseInt(statsResult.rows[0].review_count);
+        const averageRating = statsResult.rows[0].average_rating ? parseFloat(statsResult.rows[0].average_rating) : 0;
+
+        // 4. Update the product
+        const updateProductQuery = `
+            UPDATE products 
+            SET 
+                rating = $1,
+                review_count = $2,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE product_id = $3
+        `;
+        await client.query(updateProductQuery, [averageRating, reviewCount, product_id]);
+
+        await client.query('COMMIT');
+
+        res.status(200).json({
+            message: "Review deleted successfully",
+            review: result.rows[0],
+            productStats: {
+                rating: averageRating,
+                review_count: reviewCount
+            }
+        });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error deleting review:', error);
+        res.status(500).json({ message: "Failed to delete review" });
+    } finally {
+        client.release();
     }
-
-    res.status(200).json({
-        message: "Review deleted successfully",
-        review: result.rows[0]
-    });
 });
 
 // @desc    Get reviews by product ID
