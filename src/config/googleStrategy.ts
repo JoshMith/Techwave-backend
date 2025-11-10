@@ -20,7 +20,6 @@ passport.use(
       try {
         // Extract user information from Google profile
         const { given_name, family_name, email } = profile._json;
-        const phoneNumber = profile.phone_number; // or check profile._json
 
         // Check if user exists in database
         const userExists = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
@@ -37,10 +36,10 @@ passport.use(
           // User doesn't exist - create new user
           const newUser = await pool.query(
             `INSERT INTO users
-              (name, email, verified, role, phone)
-            VALUES ($1, $2, $3, $4, $5)
+              (name, email, verified, role, terms, last_login)
+            VALUES ($1, $2, $3, $4, $5, NOW())
             RETURNING *`,
-            [given_name + " " + family_name, email, true, 'customer', phoneNumber] // Default role is 'customer'
+            [given_name + " " + family_name, email, true, 'customer', true] 
           );
 
           //generate JWT token 

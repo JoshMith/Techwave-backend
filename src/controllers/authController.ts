@@ -7,7 +7,7 @@ import jwt from 'jsonwebtoken'
 import passport from 'passport';
 
 export const registerUser = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    const { name, email, phone, password, role } = req.body
+    const { name, email, phone, password, role, terms, newsletter } = req.body
 
     // Check if user exists
     const userExists = await pool.query("SELECT user_id FROM users WHERE email = $1", [email]);
@@ -23,8 +23,8 @@ export const registerUser = asyncHandler(async (req: Request, res: Response, nex
 
     //insert into user table 
     const newUser = await pool.query(
-        "INSERT INTO users (name, email, phone, password_hash, role) VALUES ($1, $2, $3, $4, $5) RETURNING user_id, name, email, phone, role",
-        [name, email, phone, hashedPassword, "customer"]
+        "INSERT INTO users (name, email, phone, password_hash, role, terms, newsletter) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING user_id, name, email, phone, role",
+        [name, email, phone, hashedPassword, "customer", terms, newsletter]
     );
 
 
@@ -85,6 +85,11 @@ export const loginUser = asyncHandler(async (req: Request, res: Response, next: 
     await generateToken(res, user.user_id, user.role);
     // await console.log("😐😐", req.cookies)
 
+    // Update last login time to current timestamp
+    await pool.query(
+        `UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE email = $1`,
+        [email]
+    );
 
     res.status(200).json({
         message: "Login successful",
@@ -201,6 +206,7 @@ export const googleAuthCallback = asyncHandler(async (req: Request, res: Respons
         const encodedUserData = encodeURIComponent(JSON.stringify(response));
 
         // Redirect to frontend with user data
-        res.redirect(`${process.env.FRONTEND_URL}/homepage?user=${encodedUserData}`);
+        // res.redirect(`${process.env.FRONTEND_URL}/homepage?user=${encodedUserData}`);
+        res.redirect(`${process.env.FRONTEND_URL}/homepage`);
     })(req, res, next);
 });

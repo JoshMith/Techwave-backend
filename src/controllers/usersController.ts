@@ -113,7 +113,7 @@ export const createUser = asyncHandler(async (req: Request, res: Response) => {
 // @access  Private
 export const updateUser = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { name, email, phone, role } = req.body;
+    const { name, email, phone, role, terms, newsletter } = req.body;
 
     const fieldsToUpdate: string[] = [];
     const values: any[] = [];
@@ -134,6 +134,14 @@ export const updateUser = asyncHandler(async (req: Request, res: Response) => {
     if (role) {
         fieldsToUpdate.push(`role = $${index++}`);
         values.push(role);
+    }
+    if (terms) {
+        fieldsToUpdate.push(`terms = $${index++}`);
+        values.push(terms);
+    }
+    if (newsletter) {
+        fieldsToUpdate.push(`newsletter = $${index++}`);
+        values.push(newsletter);
     }
 
     if (fieldsToUpdate.length === 0) {
@@ -205,14 +213,40 @@ export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
     });
 });
 
+// check and return user logged in
 // @desc    Get current user profile
 // @route   GET /api/users/me
 // @access  Private
-// 
+export const getCurrentUser = asyncHandler(async (req: UserRequest, res: Response) => {
+    const userId = req.user?.user_id;
+    if (!userId) {
+        res.status(401);
+        throw new Error("Unauthorized. Login required.");
+    }
+    const query = `
+        SELECT 
+            user_id,
+            name, 
+            email, 
+            phone,
+            role,
+            terms,
+            newsletter,
+            last_login
+        FROM users 
+        WHERE user_id = $1
+    `;
+    const result = await pool.query(query, [userId]);
+    res.status(200).json(result.rows[0]);
+});
 
+
+// @desc    Get current user profile
+// @route   GET /api/users/me
+// @access  Private
 
 // Get user profile from users table and addresses table
-export const getCurrentUserProfile = asyncHandler(async (req: Request, res: Response) => {
+export const getCurrentUserProfile = asyncHandler(async (req: UserRequest, res: Response) => {
     const { id } = req.params;
 
     if (!id) {

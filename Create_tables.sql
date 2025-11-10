@@ -17,6 +17,11 @@ CREATE TABLE users (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE users
+ADD COLUMN last_login TIMESTAMP WITH TIME ZONE,
+ADD COLUMN terms BOOLEAN DEFAULT false,
+ADD COLUMN newsletter BOOLEAN DEFAULT false;
+
 -- Sellers table (extends users)
 CREATE TABLE sellers (
     seller_id SERIAL PRIMARY KEY,
