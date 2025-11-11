@@ -223,6 +223,7 @@ export const getCurrentUser = asyncHandler(async (req: UserRequest, res: Respons
         res.status(401);
         throw new Error("Unauthorized. Login required.");
     }
+
     const query = `
         SELECT 
             user_id,
@@ -236,8 +237,34 @@ export const getCurrentUser = asyncHandler(async (req: UserRequest, res: Respons
         FROM users 
         WHERE user_id = $1
     `;
-    const result = await pool.query(query, [userId]);
-    res.status(200).json(result.rows[0]);
+    const userQuery = await pool.query(query, [userId]);
+
+    if (userQuery.rows.length === 0) {
+        res.status(404);
+        throw new Error("User not found");
+    }
+
+    // Check if user is a seller and fetch seller details if applicable
+    let sellerData = null;
+    if (userQuery.rows[0].role === 'seller') {
+        const sellerQuery = await pool.query(
+            `SELECT seller_id, business_name, tax_id, business_license, total_sales
+             FROM sellers
+             WHERE user_id = $1`,
+            [userId]
+        );
+        if (sellerQuery.rows.length > 0) {
+            sellerData = sellerQuery.rows[0];
+        }
+    }
+
+    // Construct the response
+    const result = {
+        user: userQuery.rows[0],
+        ...(sellerData && { seller: sellerData })
+    };
+    
+    res.status(200).json(result);
 });
 
 
