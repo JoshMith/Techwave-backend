@@ -40,10 +40,10 @@ app.use(cookieParser())
 
 // CORS middleware
 app.use(cors({
-    origin: ["http://localhost:4200", "http://localhost:3000", "https://techwave-neon.vercel.app"], // Allow all origins, you can specify a specific origin if needed
+    origin: ["http://localhost:4200", "http://localhost:3000", "https://techwave-neon.vercel.app"],
     methods: "GET, POST, PUT, DELETE, OPTIONS",
-    credentials: true, //allows cookies and auth headers
-    allowedHeaders: "Content-Type, Authorization, X-Requested-With",
+    credentials: true,
+    allowedHeaders: "Content-Type, Authorization, X-Requested-With, X-CSRF-Token",
 }))
 
 
