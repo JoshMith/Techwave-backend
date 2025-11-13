@@ -107,7 +107,7 @@ export const createPayment = asyncHandler(async (req: UserRequest, res: express.
 // @route   PUT /api/payments/:id/confirm
 // @access  Private
 export const confirmPayment = asyncHandler(async (req: UserRequest, res: express.Response) => {
-    const { id } = req.params;
+    const { order_id } = req.params;
     const { isConfirmed } = req.body;
 
     const fieldsToUpdate: string[] = [];
@@ -128,13 +128,13 @@ export const confirmPayment = asyncHandler(async (req: UserRequest, res: express
         return res.status(400).json({ message: "No fields provided for update" });
     }
 
-    values.push(id);
+    values.push(order_id);
 
     const query = `
         UPDATE payments
         SET ${fieldsToUpdate.join(", ")}
-        WHERE payment_id = $${index++}
-        RETURNING payment_id
+        WHERE order_id = $${index++}
+        RETURNING payment_id, order_id
     `;
 
     const result = await pool.query(query, values);
