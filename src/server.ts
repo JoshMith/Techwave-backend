@@ -45,6 +45,12 @@ app.use(cors({
     credentials: true,
     allowedHeaders: "Content-Type, Authorization, X-Requested-With, X-CSRF-Token",
 }))
+// Handle preflight requests
+app.options('*', cors({
+    origin: ["http://localhost:4200", "http://localhost:3000", "https://techwave-neon.vercel.app"],
+    credentials: true,
+    allowedHeaders: "Content-Type, Authorization, X-Requested-With, X-CSRF-Token",
+}));
 
 
 //4. routes 
