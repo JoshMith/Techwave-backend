@@ -9,7 +9,7 @@ const router = express.Router()
 router.get("/",  getOrders);
 router.get("/ordersCount", getOrdersCount);
 router.get("/:id", protect, getOrderById);
-router.post("/", protect, adminCustomerGuard, createOrder);
+router.post("/", protect, createOrder);
 router.put("/:id", protect, userGuard, updateOrder);
 router.delete("/:id", protect, adminGuard, deleteOrder);
 
