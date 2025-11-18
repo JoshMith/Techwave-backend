@@ -11,9 +11,9 @@ const pool = new Pool({
     database: process.env.DB_NAME,
 
     // For local development, comment out the ssl option
-    // ssl: {
-    //     rejectUnauthorized: false, // Required for Render
-    // },
+    ssl: {
+        rejectUnauthorized: false, // Required for Render
+    },
 })
 pool.query('SELECT NOW()', (err, result) => {
   if (err) {
