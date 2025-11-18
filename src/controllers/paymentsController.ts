@@ -18,6 +18,7 @@ import express from "express";
 import pool from "../config/db.config";
 import asyncHandler from "../middlewares/asyncHandler";
 import { UserRequest } from "../utils/types/userTypes";
+import { getUserById } from "./usersController";
 
 
 // @desc    Get all payments
@@ -80,6 +81,34 @@ export const getPaymentById = asyncHandler(async (req: UserRequest, res: express
     res.status(200).json(result.rows[0]);
 });
 
+// Get payments by getUserById
+// @desc    Get payments by userId
+// @route   GET /api/payments/:id
+// @access  Private
+export const getPaymentByUserId = asyncHandler(async (req: UserRequest, res: express.Response) => {
+    const userId = req.user?.user_id;
+    const query = `
+        SELECT 
+            p.payment_id, 
+            p.method, 
+            p.amount, 
+            p.mpesa_code, 
+            p.mpesa_phone, 
+            p.transaction_reference, 
+            p.is_confirmed, 
+            p.confirmed_at, 
+            o.order_id,
+            o.total_amount,
+            o.status,
+            o.created_at
+        FROM payments p
+        JOIN orders o ON p.order_id = o.order_id
+        WHERE o.user_id = $1
+        ORDER BY o.created_at DESC
+    `;
+});
+
+
 
 // @desc    Create a new payment
 // @route   POST /api/payments
@@ -97,7 +126,7 @@ export const createPayment = asyncHandler(async (req: UserRequest, res: express.
         RETURNING *
     `;
     const values = [orderId, method, amount, mpesaCode || null, mpesaPhone || null, transactionReference || null];
-    
+
     const result = await pool.query(query, values);
     res.status(201).json(result.rows[0]);
 });
