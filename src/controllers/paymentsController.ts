@@ -81,7 +81,6 @@ export const getPaymentById = asyncHandler(async (req: UserRequest, res: express
     res.status(200).json(result.rows[0]);
 });
 
-// Get payments by getUserById
 // @desc    Get payments by userId
 // @route   GET /api/payments/:id
 // @access  Private
@@ -106,6 +105,8 @@ export const getPaymentByUserId = asyncHandler(async (req: UserRequest, res: exp
         WHERE o.user_id = $1
         ORDER BY o.created_at DESC
     `;
+    const result = await pool.query(query, [userId]);
+    res.status(200).json(result.rows);
 });
 
 

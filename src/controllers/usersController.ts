@@ -233,7 +233,8 @@ export const getCurrentUser = asyncHandler(async (req: UserRequest, res: Respons
             role,
             terms,
             newsletter,
-            last_login
+            last_login,
+            created_at
         FROM users 
         WHERE user_id = $1
     `;

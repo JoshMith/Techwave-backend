@@ -9,7 +9,7 @@ const router = express.Router()
 
 router.get("/",  getPayments);
 router.get("/:id", protect, getPaymentById);
-router.get("/user/payments", protect, ownUserGuard, getPaymentByUserId)
+router.get("/user/payments", protect, getPaymentByUserId)
 router.post("/", protect, createPayment); 
 router.put("/:orderId/confirm", protect, confirmPayment);
 router.delete("/:id", protect, deletePayment);
