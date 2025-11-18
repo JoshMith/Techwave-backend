@@ -91,6 +91,41 @@ export const getOrderById = asyncHandler(async (req: UserRequest, res: express.R
 });
 
 
+// @desc    Get order & OrderItems by UserId
+// @route   GET /api/orders/user/:id
+// @access  Private
+export const getOrdersByUserId = asyncHandler(async (req: UserRequest, res: express.Response) => {
+    const userId = req.user?.user_id;
+    const query = `
+        SELECT 
+            u.user_id,
+            u.name AS name,
+            u.email AS email,
+            u.phone AS phone,
+            o.order_id,
+            o.total_amount,
+            o.status,
+            o.notes,
+            o.created_at,
+            oi.order_item_id,
+            oi.quantity,
+            oi.unit_price,
+            oi.discount,
+            p.product_id,
+            p.title AS product_title,
+            p.description AS product_description
+        FROM orders o
+        JOIN users u ON o.user_id = u.user_id
+        JOIN order_items oi ON o.order_id = oi.order_id
+        JOIN products p ON oi.product_id = p.product_id
+        WHERE o.user_id = $1
+        ORDER BY o.created_at DESC
+    `;
+    const result = await pool.query(query, [userId]);
+    res.status(200).json(result.rows);
+});
+
+
 // @desc    Create a new order
 // @route   POST /api/orders
 // @access  Private
