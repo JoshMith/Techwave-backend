@@ -40,16 +40,16 @@ app.use(cookieParser())
 
 // CORS middleware
 app.use(cors({
-    origin: ["http://localhost:4200", "https://techwave-neon.vercel.app"],
-    methods: "GET, POST, PUT, DELETE, OPTIONS",
-    credentials: true,
-    allowedHeaders: "Content-Type, Authorization, X-Requested-With, X-CSRF-Token",
+  origin: ["http://localhost:4200", "https://techwave-neon.vercel.app"],
+  methods: "GET, POST, PUT, DELETE, OPTIONS",
+  credentials: true,
+  allowedHeaders: "Content-Type, Authorization, X-Requested-With, X-CSRF-Token, ngrok-skip-browser-warning",
 }))
 // Handle preflight requests
 app.options('*', cors({
-    origin: ["http://localhost:4200", "https://techwave-neon.vercel.app"],
-    credentials: true,
-    allowedHeaders: "Content-Type, Authorization, X-Requested-With, X-CSRF-Token",
+  origin: ["http://localhost:4200", "https://techwave-neon.vercel.app"],
+  credentials: true,
+  allowedHeaders: "Content-Type, Authorization, X-Requested-With, X-CSRF-Token, ngrok-skip-browser-warning",
 }));
 
 
@@ -192,6 +192,6 @@ app.use(notFound)
 const PORT = process.env.PORT || 5000
 
 app.listen(PORT, () => {
-    console.log(`🚀🚀 server is running on port - ${PORT}
+  console.log(`🚀🚀 server is running on port - ${PORT}
         link: http://localhost:${PORT}`)
 })

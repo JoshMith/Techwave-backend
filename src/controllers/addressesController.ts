@@ -15,6 +15,7 @@ import { Request, Response } from "express";
 import pool from "../config/db.config";
 import asyncHandler from "../middlewares/asyncHandler";
 import { UserRequest } from "../utils/types/userTypes";
+import { use } from "passport";
 
 // @desc    Get all addresses for a user
 // @route   GET /api/addresses
@@ -97,8 +98,12 @@ export const getAddressByUserId = asyncHandler(async (req: Request, res: Respons
 // @route   POST /api/addresses
 // @access  Private
 export const createAddress = asyncHandler(async (req: UserRequest, res: Response) => {
-    const userId = req.user?.user_id;
-    const { city, street, building, postal_code, is_default } = req.body;
+    const { userId, city, street, building, postal_code, is_default } = req.body;
+
+    if (userId === undefined) {
+        res.status(400);
+        throw new Error("User ID is required");
+    }
 
     if (!city || !street) {
         res.status(400);
