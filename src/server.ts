@@ -39,15 +39,14 @@ app.use(cookieParser())
 
 // CORS middleware - FIXED VERSION
 const allowedOrigins = [
-  "http://localhost:4200", 
-  "https://techwave-neon.vercel.app"
+  process.env.FRONTEND_URL
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps, curl, Postman)
     if (!origin) return callback(null, true);
-    
+
     if (allowedOrigins.indexOf(origin) === -1) {
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
@@ -57,10 +56,10 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true,
   allowedHeaders: [
-    "Content-Type", 
-    "Authorization", 
-    "X-Requested-With", 
-    "X-CSRF-Token", 
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "X-CSRF-Token",
     "ngrok-skip-browser-warning"
   ],
   exposedHeaders: ["Set-Cookie"],
