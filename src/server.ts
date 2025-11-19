@@ -19,12 +19,10 @@ import reviewsRoutes from './routes/reviewsRoutes'
 import deliveryPriceRoutes from './routes/deliveryPriceRoutes'
 import passport from './config/googleStrategy'
 import session from 'express-session'
-import path from 'path' // For serving static files
+import path from 'path'
 import cartItemsRoutes from './routes/cartItemsRoutes'
 import cartRoutes from './routes/cartRoutes'
 import mpesaRoutes from './routes/mpesaRoutes';
-
-
 
 // 1:dotenv
 dotenv.config()
@@ -33,26 +31,53 @@ dotenv.config()
 const app = express()
 
 //3:NEVER IN YOUR LIFE FORGET THIS 
-app.use(express.json()) // for parsing application/json
-app.use(express.urlencoded({ extended: true })) // for parsing application/x-www-form-urlencoded
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+
 //Cookie parser middleware
 app.use(cookieParser())
 
-// CORS middleware
+// CORS middleware - FIXED VERSION
+const allowedOrigins = [
+  "http://localhost:4200", 
+  "https://techwave-neon.vercel.app"
+];
+
 app.use(cors({
-  origin: ["http://localhost:4200", "https://techwave-neon.vercel.app"],
-  methods: "GET, POST, PUT, DELETE, OPTIONS",
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true,
-  allowedHeaders: "Content-Type, Authorization, X-Requested-With, X-CSRF-Token, ngrok-skip-browser-warning",
-}))
-// Handle preflight requests
-app.options('*', cors({
-  origin: ["http://localhost:4200", "https://techwave-neon.vercel.app"],
-  credentials: true,
-  allowedHeaders: "Content-Type, Authorization, X-Requested-With, X-CSRF-Token, ngrok-skip-browser-warning",
+  allowedHeaders: [
+    "Content-Type", 
+    "Authorization", 
+    "X-Requested-With", 
+    "X-CSRF-Token", 
+    "ngrok-skip-browser-warning"
+  ],
+  exposedHeaders: ["Set-Cookie"],
+  maxAge: 86400 // 24 hours
 }));
 
-
+// Handle preflight requests explicitly
+app.options('*', (req, res) => {
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-CSRF-Token, ngrok-skip-browser-warning');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.sendStatus(200);
+});
 
 //4. routes 
 app.use("/auth", authRoutes)
@@ -62,8 +87,8 @@ app.use("/addresses", addressesRoutes)
 app.use("/categories", categoriesRoutes)
 app.use("/products", productsRoutes)
 app.use("/product-images", productImagesRoutes)
-app.use("/carts", cartRoutes) // Importing with require to handle ES module compatibility
-app.use("/cart-items", cartItemsRoutes) // Importing with require to handle ES module compatibility
+app.use("/carts", cartRoutes)
+app.use("/cart-items", cartItemsRoutes)
 app.use("/orders", ordersRoutes)
 app.use("/order-items", orderItemsRoutes)
 app.use("/special-offers", specialOffersRoutes)
@@ -76,14 +101,11 @@ app.use("/mpesa", mpesaRoutes);
 // Update your static files configuration
 app.use('/public', express.static(path.join(__dirname, '../public'), {
   setHeaders: (res, path) => {
-    // Set proper cache headers
     res.set('Cache-Control', 'public, max-age=31536000');
   }
 }));
 
-// Serve static files from 'public' directory as root
 app.use(express.static(path.join(__dirname, '../public')));
-
 
 // Google strategy
 app.use(session({
@@ -91,16 +113,16 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'development' ? false : true, // Set to true if using HTTPS in production 
-    httpOnly: true, // Helps prevent XSS attacks // JS on client side cannot access the cookie
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    secure: process.env.NODE_ENV === 'development' ? false : true,
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000,
+    sameSite: process.env.NODE_ENV === 'development' ? 'lax' : 'none' // Important for cross-origin
   }
 }));
 
 // Initialize Passport
 app.use(passport.initialize());
 app.use(passport.session());
-
 
 app.get("/", (req, res) => {
   res.send(`
