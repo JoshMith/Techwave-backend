@@ -1,12 +1,12 @@
 import express from 'express'
-import { googleAuth, googleAuthCallback, loginUser, logoutUser, registerUser, verifyEmail } from '../controllers/authController'
+import { googleAuth, googleAuthCallback, login, logout, register, verifyEmail } from '../controllers/authController'
 
 const router = express.Router()
 
 //public routes 
-router.post("/register", registerUser)
-router.post("/login", loginUser)
-router.post("/logout", logoutUser)
+router.post("/register", register)
+router.post("/login", login)
+router.post("/logout", logout)
 
 router.get("/verifyEmail",verifyEmail)
 

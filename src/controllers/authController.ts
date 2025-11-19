@@ -169,7 +169,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
 
 
-export const logoutUser = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const logout = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     //We need to immedietly invalidate the access token and the refreh token 
     res.cookie("access_token", "", {
         httpOnly: true,
