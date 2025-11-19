@@ -27,10 +27,12 @@ import mpesaRoutes from './routes/mpesaRoutes';
 // 1:dotenv
 dotenv.config()
 
+
 //2:instance of express  
 const app = express()
 
-//3:NEVER IN YOUR LIFE FORGET THIS 
+app.set('trust proxy', 1);
+
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
@@ -107,6 +109,8 @@ app.use('/public', express.static(path.join(__dirname, '../public'), {
 
 app.use(express.static(path.join(__dirname, '../public')));
 
+
+
 // Google strategy
 app.use(session({
   secret: process.env.SESSION_SECRET!,
@@ -116,8 +120,9 @@ app.use(session({
     secure: process.env.NODE_ENV === 'development' ? false : true,
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000,
-    sameSite: process.env.NODE_ENV === 'development' ? 'lax' : 'none' // Important for cross-origin
-  }
+    sameSite: 'none' // Important for cross-origin
+  },
+  proxy: true
 }));
 
 // Initialize Passport

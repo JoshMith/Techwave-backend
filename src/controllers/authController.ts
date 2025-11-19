@@ -113,14 +113,14 @@ export const logout = asyncHandler(async (req: Request, res: Response, next: Nex
     res.cookie("access_token", "", {
         httpOnly: true,
         secure: process.env.NODE_ENV !== "development",
-        sameSite: "strict",
+        sameSite: "none",
         expires: new Date(0) // Expire immediately
     });
 
     res.cookie("refresh_token", "", {
         httpOnly: true,
         secure: process.env.NODE_ENV !== "development",
-        sameSite: "strict",
+        sameSite: "none",
         expires: new Date(0) // Expire immediately
     });
 
@@ -206,6 +206,6 @@ export const googleAuthCallback = asyncHandler(async (req: Request, res: Respons
 
         // Redirect to frontend with user data
         // res.redirect(`${process.env.FRONTEND_URL}/homepage?user=${encodedUserData}`);
-        res.redirect(`${process.env.FRONTEND_URL}/homepage`);
+        res.redirect(`${process.env.FRONTEND_URL}/home`);
     })(req, res, next);
 });
