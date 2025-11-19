@@ -62,9 +62,10 @@ app.use(cors({
     "X-CSRF-Token",
     "ngrok-skip-browser-warning"
   ],
-  exposedHeaders: ["Set-Cookie"],
+  exposedHeaders: ["Set-Cookie", "Authorization"], // ← Expose Authorization
   maxAge: 86400 // 24 hours
 }));
+
 
 // Handle preflight requests explicitly
 app.options('*', (req, res) => {

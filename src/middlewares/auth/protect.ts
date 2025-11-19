@@ -8,36 +8,40 @@ import asyncHandler from "../asyncHandler";
 
 //Auth middleware to protect routes 
 export const protect = asyncHandler(async (req: UserRequest, res: Response, next: NextFunction) => {
-    let token;
+    let token: string | undefined;
 
-    //trying to get token from Authorization Header 
-    if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
-        token = req.headers.authorization.split(" ")[1];
+    // 1. Try to get token from Authorization header (RECOMMENDED for production)
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7); // Remove 'Bearer ' prefix
+        console.log('✅ Token found in Authorization header');
     }
 
     //get the token from cookies 
     if (!token && req.cookies?.access_token) {
         token = req.cookies.access_token;
+        console.log('✅ Token found in cookie');
     }
 
     //if no token found
     if (!token) {
-        res.status(401).json({ message: "Not authorized , no token! Login" })
-        return;
+        console.log('❌ No token found in request');
+        res.status(401);
+        throw new Error('Not authorized, no token! Login');
     }
 
     try {
-        //we have the token but we nneed to verify it 
+        //we have the token but we nneed to verify it using JWT_SECRET
         if (!process.env.JWT_SECRET) {
             throw new Error("JWT_SECRET is not defined in environment variables");
         }
 
         //verify token 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET) as { userId: string; role: number };
+        const decoded = jwt.verify(token, process.env.JWT_SECRET) as { userId: string; email: string; role: number };
 
         //get the user from database
         const userQuery = await pool.query(
-            "SELECT user_id, name, email, role FROM users WHERE user_id = $1",
+            "SELECT user_id, name, email, role, last_login FROM users WHERE user_id = $1",
             [decoded.userId]
         );
 
@@ -48,12 +52,13 @@ export const protect = asyncHandler(async (req: UserRequest, res: Response, next
 
         //attach the user to the request 
         req.user = userQuery.rows[0]
-
+        console.log('✅ User authenticated:', req.user?.user_id);
         next() //proceed to next thing 
 
     } catch (error) {
-        console.error("JWT Error:", error);
-        res.status(401).json({ message: "Not authorized, token failed" });
-        return;
+        console.error('❌ Token verification failed:', error);
+        res.status(401);
+        throw new Error('Not authorized, token failed');
+
     }
 })
