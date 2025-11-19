@@ -2,7 +2,7 @@ import express from 'express'
 import dotenv from 'dotenv'
 import cookieParser from "cookie-parser"
 import cors from "cors"
-import { notFound } from './middlewares/errorMiddlewares'
+import { errorHandler, notFound } from './middlewares/errorMiddlewares'
 import authRoutes from './routes/authRoutes'
 import usersRoute from './routes/usersRoute'
 import sellersRoutes from './routes/sellersRoutes'
@@ -208,7 +208,7 @@ app.get("/", (req, res) => {
 });
 
 //5. middlewares for error handlers 
-app.use(notFound)
+app.use(notFound, errorHandler)
 
 //6: start the serve 
 const PORT = process.env.PORT || 5000

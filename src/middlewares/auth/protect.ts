@@ -8,7 +8,7 @@ import asyncHandler from "../asyncHandler";
 
 //Auth middleware to protect routes 
 export const protect = asyncHandler(async (req: UserRequest, res: Response, next: NextFunction) => {
-    let token: string | undefined;
+    let token;
 
     // 1. Try to get token from Authorization header (RECOMMENDED for production)
     const authHeader = req.headers.authorization;

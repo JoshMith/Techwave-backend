@@ -7,4 +7,16 @@ const notFound = (req: Request, res:Response, next:NextFunction) => {
     next(error)
 }
 
-export {notFound}
+const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
+    let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+    let message = err.message;
+
+    // Always return JSON, even for errors
+    res.status(statusCode).json({
+        success: false,
+        message: message,
+        stack: process.env.NODE_ENV === 'production' ? null : err.stack
+    });
+};
+
+export {notFound, errorHandler}

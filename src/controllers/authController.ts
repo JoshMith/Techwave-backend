@@ -1,171 +1,110 @@
 import { Request, Response, NextFunction } from "express"
 import pool from "../config/db.config";
 import bcrypt from 'bcryptjs'
+import { generateToken } from "../utils/helpers/generateToken";
 import asyncHandler from "../middlewares/asyncHandler";
 import jwt from 'jsonwebtoken'
 import passport from 'passport';
 
 
-// Generate JWT Token
-const generateToken = (user_id: number, email: string, role: string): string => {
-    return jwt.sign(
-        { user_id, email, role },
-        process.env.JWT_SECRET || 'your-secret-key',
-        { expiresIn: '30d' }
+export const login = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+
+    const { email, password } = req.body
+
+    // Check if user exists
+    const userQuery = await pool.query(
+        `SELECT user_id, name, email, password_hash, role FROM users WHERE email = $1`,
+        [email]
     );
-};
 
-// @desc    Login user
-// @route   POST /auth/login
-// @access  Public
-export const login = asyncHandler(async (req: Request, res: Response) => {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-        res.status(400);
-        throw new Error('Please provide email and password');
+    if (userQuery.rows.length === 0) {
+        res.status(401).json({ message: "Invalid email or password" });
+        return;
     }
 
-    // Find user
-    const query = 'SELECT * FROM users WHERE email = $1';
-    const result = await pool.query(query, [email]);
-
-    if (result.rows.length === 0) {
-        res.status(401);
-        throw new Error('Invalid email or password');
-    }
-
-    const user = result.rows[0];
-
-    // Check password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-        res.status(401);
-        throw new Error('Invalid email or password');
-    }
-
-    // Check if user is a seller
+    // Check if user is a seller and fetch seller details if applicable
     let sellerData = null;
-    if (user.role === 'seller') {
+    if (userQuery.rows[0].role === 'seller') {
         const sellerQuery = await pool.query(
-            'SELECT seller_id, business_name, tax_id, business_license, total_sales FROM sellers WHERE user_id = $1',
-            [user.user_id]
+            `SELECT seller_id, business_name, tax_id, business_license, total_sales
+             FROM sellers
+             WHERE user_id = $1`,
+            [userQuery.rows[0].user_id]
         );
         if (sellerQuery.rows.length > 0) {
             sellerData = sellerQuery.rows[0];
         }
     }
 
-    // Generate token
-    const token = generateToken(user.user_id, user.email, user.role);
+    //query the user  
+    const user = userQuery.rows[0];
 
-    // Set cookie (for same-domain requests)
-    res.cookie('jwt', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
-    });
-
-    // Update last login
-    await pool.query(
-        'UPDATE users SET last_login = NOW() WHERE user_id = $1',
-        [user.user_id]
-    );
-
-    // Return response with token in body (CRITICAL for cross-domain)
-    res.status(200).json({
-        success: true,
-        message: 'Login successful',
-        token, // ← CRITICAL: Return token in response body
-        user: {
-            user_id: user.user_id,
-            name: user.name,
-            email: user.email,
-            phone: user.phone,
-            role: user.role,
-            terms: user.terms,
-            newsletter: user.newsletter
-        },
-        ...(sellerData && { seller: sellerData })
-    });
-});
-
-
-
-// @desc    Register user
-// @route   POST /auth/register
-// @access  Public
-export const register = asyncHandler(async (req: Request, res: Response) => {
-    const { name, email, password, phone, role = 'customer', terms, newsletter } = req.body;
-
-    // Validation
-    if (!name || !email || !password) {
-        res.status(400);
-        throw new Error('Please provide name, email, and password');
+    // Compare passwords
+    const isMatch = await bcrypt.compare(password, user.password_hash)
+    if (!isMatch) {
+        res.status(401).json({ message: "Invalid email or password" });
+        return;
     }
 
-    // Check if user exists
-    const existingUser = await pool.query(
-        'SELECT user_id FROM users WHERE email = $1',
+    //generate JWT token 
+    await generateToken(res, user.user_id, user.role);
+    // await console.log("😐😐", req.cookies)
+
+    // Update last login time to current timestamp
+    await pool.query(
+        `UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE email = $1`,
         [email]
     );
 
-    if (existingUser.rows.length > 0) {
-        res.status(400);
-        throw new Error('User already exists with this email');
-    }
-
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Insert user
-    const insertQuery = `
-    INSERT INTO users (name, email, password, phone, role, terms, newsletter)
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
-    RETURNING user_id, name, email, phone, role, terms, newsletter, created_at
-  `;
-
-    const result = await pool.query(insertQuery, [
-        name,
-        email,
-        hashedPassword,
-        phone || null,
-        role,
-        terms || false,
-        newsletter || false
-    ]);
-
-    const user = result.rows[0];
-
-    // Generate token
-    const token = generateToken(user.user_id, user.email, user.role);
-
-    // Set cookie
-    res.cookie('jwt', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        maxAge: 30 * 24 * 60 * 60 * 1000
-    });
-
-    // Return response with token
-    res.status(201).json({
-        success: true,
-        message: 'Registration successful',
-        token, // ← Return token in response body
+    res.status(200).json({
+        message: "Login successful",
         user: {
             user_id: user.user_id,
             name: user.name,
             email: user.email,
             phone: user.phone,
-            role: user.role,
-            terms: user.terms,
-            newsletter: user.newsletter
+            role: user.role
+        },
+        sellerData: {
+            ...sellerData
         }
     });
-});
+    //next();
+}) 
+
+export const register = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const { name, email, phone, password, role, terms, newsletter } = req.body
+
+    // Check if user exists
+    const userExists = await pool.query("SELECT user_id FROM users WHERE email = $1", [email]);
+
+    if (userExists.rows.length > 0) {
+        res.status(400).json({ message: "User already exists" });
+        return;
+    }
+
+    //before inserting into users, we need to hash the passwords
+    const salt = await bcrypt.genSalt(10)
+    const hashedPassword = await bcrypt.hash(password, salt)
+
+    //insert into user table 
+    const newUser = await pool.query(
+        "INSERT INTO users (name, email, phone, password_hash, role, terms, newsletter) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING user_id, name, email, phone, role",
+        [name, email, phone, hashedPassword, "customer", terms, newsletter]
+    );
+
+
+    //generate JWT token for user access 
+    generateToken(res, newUser.rows[0].user_id, newUser.rows[0].role)
+     
+
+    res.status(201).json({
+        message: "User registered successfully",
+        user: newUser.rows[0]
+    });
+
+    //next() - I will redirect automatically is successfully registered
+})
 
 
 
@@ -185,10 +124,7 @@ export const logout = asyncHandler(async (req: Request, res: Response, next: Nex
         expires: new Date(0) // Expire immediately
     });
 
-    res.status(200).json({
-        success: true,
-        message: "Logged out successfully"
-    });
+    res.status(200).json({ message: "User logged out successfully" });
 });
 
 export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
@@ -237,8 +173,8 @@ export const googleAuthCallback = asyncHandler(async (req: Request, res: Respons
             return res.redirect('/homepage');
         }
 
-        // Generate token
-        const token = generateToken(user.user_id, user.email, user.role);
+        // Generate tokens and set cookies
+        await generateToken(res, user.user_id, user.role);
 
         // Check if user exists in the database
         const userQuery = await pool.query(
@@ -247,7 +183,7 @@ export const googleAuthCallback = asyncHandler(async (req: Request, res: Respons
         WHERE user_id = $1`,
             [user.user_id]
         );
-
+        
 
         // If no user is found, return an error
         if (userQuery.rows.length === 0) {
