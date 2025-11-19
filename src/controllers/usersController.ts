@@ -213,15 +213,20 @@ export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
     });
 });
 
-// check and return user logged in
 // @desc    Get current user profile
-// @route   GET /api/users/me
-// @access  Private
+// @route   GET /api/users/userLoggedIn
+// @access  Public (but returns user only if authenticated)
 export const getCurrentUser = asyncHandler(async (req: UserRequest, res: Response) => {
+    // Check if user is authenticated
     const userId = req.user?.user_id;
+    
+    // If no user, return null instead of throwing error
     if (!userId) {
-        res.status(401);
-        throw new Error("Unauthorized. Login required.");
+        return res.status(200).json({ 
+            authenticated: false,
+            user: null,
+            seller: null
+        });
     }
 
     const query = `
@@ -241,8 +246,11 @@ export const getCurrentUser = asyncHandler(async (req: UserRequest, res: Respons
     const userQuery = await pool.query(query, [userId]);
 
     if (userQuery.rows.length === 0) {
-        res.status(404);
-        throw new Error("User not found");
+        return res.status(200).json({ 
+            authenticated: false,
+            user: null,
+            seller: null
+        });
     }
 
     // Check if user is a seller and fetch seller details if applicable
@@ -261,6 +269,7 @@ export const getCurrentUser = asyncHandler(async (req: UserRequest, res: Respons
 
     // Construct the response
     const result = {
+        authenticated: true,
         user: userQuery.rows[0],
         ...(sellerData && { seller: sellerData })
     };
