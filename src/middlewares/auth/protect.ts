@@ -18,9 +18,16 @@ export const protect = asyncHandler(async (req: UserRequest, res: Response, next
     }
 
     //get the token from cookies 
+    // fallback to cookie
     if (!token && req.cookies?.access_token) {
         token = req.cookies.access_token;
         console.log('✅ Token found in cookie');
+    }
+
+    // INSECURE DEV FALLBACK: read token from env var
+    if (!token && process.env.ACCESS_TOKEN) {
+        token = process.env.ACCESS_TOKEN;
+        console.log('⚠️ Token found in ACCESS_TOKEN env var (insecure fallback)');
     }
 
     //if no token found
@@ -31,7 +38,7 @@ export const protect = asyncHandler(async (req: UserRequest, res: Response, next
     }
 
     try {
-        //we have the token but we nneed to verify it using JWT_SECRET
+        //we have the token but we need to verify it using JWT_SECRET
         if (!process.env.JWT_SECRET) {
             throw new Error("JWT_SECRET is not defined in environment variables");
         }
