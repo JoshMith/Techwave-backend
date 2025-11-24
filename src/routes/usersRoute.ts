@@ -6,7 +6,7 @@ import { adminCustomerGuard } from '../middlewares/auth/roleMiddleWare'
 const router = express.Router()
 
 router.get("/", protect, getUsers)
-router.get("/userLoggedIn", getCurrentUser)
+router.get("/userLoggedIn", protect, getCurrentUser)
 router.get("/customerCount", protect, getCustomerCount)
 router.get("/:id", protect, getUserById)
 router.get("/profile/:id", protect, getCurrentUserProfile)

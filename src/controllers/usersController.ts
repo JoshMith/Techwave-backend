@@ -215,7 +215,7 @@ export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
 
 // @desc    Get current user profile
 // @route   GET /api/users/userLoggedIn
-// @access  Public (but returns user only if authenticated)
+// @access  Private (requires authentication)
 export const getCurrentUser = asyncHandler(async (req: UserRequest, res: Response) => {
     // Check if user is authenticated
     const userId = req.user?.user_id;
