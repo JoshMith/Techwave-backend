@@ -25,10 +25,10 @@ export const protect = asyncHandler(async (req: UserRequest, res: Response, next
     }
 
     // INSECURE DEV FALLBACK: read token from env var
-    if (!token && process.env.ACCESS_TOKEN) {
-        token = process.env.ACCESS_TOKEN;
-        console.log('⚠️ Token found in ACCESS_TOKEN env var (insecure fallback)');
-    }
+    // if (!token && process.env.ACCESS_TOKEN) {
+    //     token = process.env.ACCESS_TOKEN;
+    //     console.log('⚠️ Token found in ACCESS_TOKEN env var (insecure fallback)');
+    // }
 
     //if no token found
     if (!token) {

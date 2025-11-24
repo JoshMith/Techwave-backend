@@ -23,6 +23,8 @@ import path from 'path'
 import cartItemsRoutes from './routes/cartItemsRoutes'
 import cartRoutes from './routes/cartRoutes'
 import mpesaRoutes from './routes/mpesaRoutes';
+import adminDashboardRoutes from './routes/adminDashboardRoutes'
+import adminManagementRoutes from './routes/adminManagementRoutes'
 
 // 1:dotenv
 dotenv.config()
@@ -99,6 +101,8 @@ app.use("/payments", paymentsRoutes)
 app.use("/reviews", reviewsRoutes)
 app.use("/delivery-prices", deliveryPriceRoutes)
 app.use("/mpesa", mpesaRoutes);
+app.use("/admin/dashboard", adminDashboardRoutes);
+app.use("/admin/manage", adminManagementRoutes)
 
 // Update your static files configuration
 app.use('/public', express.static(path.join(__dirname, '../public'), {
