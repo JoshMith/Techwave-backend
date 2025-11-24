@@ -120,6 +120,8 @@ CREATE TABLE orders (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TYPE order_status ADD VALUE IF NOT EXISTS 'failed';
+
 -- Order items
 CREATE TABLE order_items (
     order_item_id SERIAL PRIMARY KEY,
