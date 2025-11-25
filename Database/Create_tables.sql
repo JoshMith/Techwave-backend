@@ -132,19 +132,22 @@ CREATE TABLE order_items (
     discount NUMERIC(10, 2) DEFAULT 0
 );
 
--- Payments
-CREATE TABLE payments (
-    payment_id SERIAL PRIMARY KEY,
-    order_id INTEGER UNIQUE NOT NULL REFERENCES orders(order_id) ON DELETE CASCADE,
-    method payment_method NOT NULL,
-    amount NUMERIC(12, 2) NOT NULL CHECK (amount > 0),
-    mpesa_code VARCHAR(20),
-    mpesa_phone VARCHAR(13) CHECK (mpesa_phone LIKE '+254%'),
-    transaction_reference VARCHAR(100),
-    is_confirmed BOOLEAN DEFAULT false,
-    confirmed_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+    -- Payments
+    CREATE TABLE payments (
+        payment_id SERIAL PRIMARY KEY,
+        order_id INTEGER UNIQUE NOT NULL REFERENCES orders(order_id) ON DELETE CASCADE,
+        method payment_method NOT NULL,
+        amount NUMERIC(12, 2) NOT NULL CHECK (amount > 0),
+        mpesa_code VARCHAR(20),
+        mpesa_phone VARCHAR(13) CHECK (mpesa_phone LIKE '+254%'),
+        transaction_reference VARCHAR(100),
+        is_confirmed BOOLEAN DEFAULT false,
+        confirmed_at TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+ALTER TYPE payment_method ADD VALUE IF NOT EXISTS 'cash';
+
 
 -- Reviews
 CREATE TABLE reviews (

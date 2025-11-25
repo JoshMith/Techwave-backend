@@ -24,8 +24,8 @@ import { adminGuard } from '../middlewares/auth/roleMiddleWare';
 const router = express.Router();
 
 // All routes require authentication and admin role
-// router.use(protect);
-// router.use(adminGuard);
+router.use(protect);
+router.use(adminGuard);
 
 router.put('/users/bulk-update', bulkUpdateUsers);
 router.put('/users/:id/role', changeUserRole);
