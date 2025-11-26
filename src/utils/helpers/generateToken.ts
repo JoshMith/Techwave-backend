@@ -20,7 +20,7 @@ export const generateToken = (res:Response, userId: User, role: User) => {
     try {
         //Lets generate a short - lived acccess token for 15 minutes
         // sign(payload: string | Buffer | object, secretOrPrivateKey: null, options?: jwt.SignOptions & { algorithm: "none"; }): string
-        const accessToken = jwt.sign({userId, role}, jwtSecret, {expiresIn: "30d"})
+        const accessToken = jwt.sign({userId, role}, jwtSecret, {expiresIn: "30m"})
         //Lets generate a long - lived acccess token for 30days
         const refreshToken = jwt.sign({userId}, refreshSecret, {expiresIn: "30d"})
 
@@ -28,16 +28,15 @@ export const generateToken = (res:Response, userId: User, role: User) => {
         res.cookie("access_token", accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV !== "development", // Secure in production
-            sameSite: "none",
+            sameSite: "lax",
             maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
         });
-
 
          // Set Refresh Token as HTTP-Only Secure Cookie
          res.cookie("refresh_token", refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV !== "development",
-            sameSite: "none",
+            sameSite: "lax",
             maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
         });
 
