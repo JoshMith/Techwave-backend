@@ -98,7 +98,9 @@ export const getAddressByUserId = asyncHandler(async (req: Request, res: Respons
 // @route   POST /api/addresses
 // @access  Private
 export const createAddress = asyncHandler(async (req: UserRequest, res: Response) => {
-    const { userId, city, street, building, postal_code, is_default } = req.body;
+    const { city, street, building, postal_code, is_default } = req.body;
+
+    const userId = req.user?.user_id;
 
     if (userId === undefined) {
         res.status(400);
