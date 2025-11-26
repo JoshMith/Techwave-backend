@@ -8,7 +8,7 @@ const router = express.Router()
 router.get("/", protect, adminSellerGuard, getSellers)
 router.get("/:id", protect, adminSellerGuard, getSellerById)
 router.get("/:id/dashboard-stats", protect, adminSellerGuard, getSellerDashboardStats)
-router.post("/", protect, adminGuard, createSeller)
+router.post("/", protect, adminSellerGuard, createSeller)
 router.put("/:id", protect, adminSellerGuard, updateSeller)
 router.delete("/:id", protect, adminGuard, deleteSeller)
 
