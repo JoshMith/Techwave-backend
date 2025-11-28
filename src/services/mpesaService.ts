@@ -9,22 +9,64 @@ import { mpesaConfig, getEndpoint } from '../config/mpesa.config';
  */
 export const generateAccessToken = async (): Promise<string> => {
     try {
+        // Validate credentials exist
+        if (!mpesaConfig.consumerKey || !mpesaConfig.consumerSecret) {
+            throw new Error('M-Pesa credentials not configured. Check MPESA_CONSUMER_KEY and MPESA_CONSUMER_SECRET in environment variables.');
+        }
+
+        console.log('🔐 Generating M-Pesa access token...');
+        console.log('📍 Environment:', mpesaConfig.environment);
+        console.log('🔑 Consumer Key:', mpesaConfig.consumerKey.substring(0, 10) + '...');
+        console.log('🔗 OAuth URL:', getEndpoint('oauth'));
+
         const auth = Buffer.from(
             `${mpesaConfig.consumerKey}:${mpesaConfig.consumerSecret}`
         ).toString('base64');
+
+        console.log('📤 Sending OAuth request to Safaricom...');
 
         const response = await axios.get(getEndpoint('oauth'), {
             headers: {
                 Authorization: `Basic ${auth}`,
             },
+            timeout: 30000, // 30 second timeout
         });
+
+        console.log('✅ Access token generated successfully');
+        console.log('🎫 Token:', response.data.access_token.substring(0, 20) + '...');
 
         return response.data.access_token;
     } catch (error: any) {
-        console.error('❌ M-Pesa OAuth Error:', error.response?.data || error.message);
-        throw new Error('Failed to generate M-Pesa access token');
+        console.error('❌ M-Pesa OAuth Error Details:');
+        
+        if (error.response) {
+            // Safaricom API returned an error
+            console.error('📊 Status Code:', error.response.status);
+            console.error('📋 Response Data:', JSON.stringify(error.response.data, null, 2));
+            console.error('📬 Response Headers:', JSON.stringify(error.response.headers, null, 2));
+            
+            // Specific error messages
+            if (error.response.status === 400) {
+                throw new Error('Invalid M-Pesa credentials. Please check your Consumer Key and Consumer Secret.');
+            } else if (error.response.status === 401) {
+                throw new Error('M-Pesa authentication failed. Verify your credentials are for the correct environment (sandbox/production).');
+            }
+            
+            throw new Error(`M-Pesa OAuth failed: ${error.response.data?.error_description || error.response.statusText}`);
+        } else if (error.request) {
+            // Request made but no response
+            console.error('❌ No response from Safaricom API');
+            console.error('📡 Request:', error.request);
+            throw new Error('Unable to connect to M-Pesa API. Check your internet connection.');
+        } else {
+            // Error in request setup
+            console.error('❌ Error:', error.message);
+            throw new Error('Failed to generate M-Pesa access token: ' + error.message);
+        }
     }
 };
+
+// ... rest of your code remains the same
 
 /**
  * Generate M-Pesa Password
