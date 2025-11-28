@@ -17,7 +17,7 @@ export const mpesaConfig = {
     // Callback URLs (must be publicly accessible)
     callbackURL: process.env.MPESA_CALLBACK_URL || 'https://miffiest-tom-pyramidally.ngrok-free.dev/mpesa/callback',
     // Transaction Type
-    transactionType: 'CustomerBuyGoodsOnline', // or 'CustomerPayBillOnline' for PayBill
+    transactionType: 'CustomerPayBillOnline', // or 'CustomerBuyGoodsOnline' for PayBill
     // Account Reference
     accountReference: 'TechWave',
 };
